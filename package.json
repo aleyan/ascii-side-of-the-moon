@@ -1,0 +1,56 @@
+{
+  "name": "ascii-side-of-the-moon",
+  "version": "1.0.0",
+  "description": "Tiny Moon phase/size/libration + Unicode terminal renderer. Zero runtime deps; dev-only almanac generated with astronomy-engine.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsup --clean",
+    "dev": "vitest",
+    "test": "vitest run",
+    "gen:almanac": "tsx scripts/generate-almanac.ts",
+    "verify": "tsx scripts/verify-against-astronomy-engine.ts",
+    "render:demo": "tsx scripts/demo-render.ts",
+    "render:demo_animate": "tsx scripts/demo-animate.ts",
+    "export:moon-data": "tsx scripts/export-moon-data.ts"
+  },
+  "keywords": [
+    "moon",
+    "phase",
+    "libration",
+    "unicode",
+    "terminal",
+    "cloudflare-workers",
+    "esm"
+  ],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=18.17"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "astronomy-engine": "^2.1.19",
+    "tsup": "^8.5.0",
+    "tsx": "^4.16.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
