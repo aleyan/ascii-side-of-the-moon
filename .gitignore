@@ -3,3 +3,5 @@ data
 .DS_Store
 renders
 dist
+moon.cast
+moon.svg

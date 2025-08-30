@@ -35,3 +35,11 @@ pnpm run render:demo_animate 2025-01-01 2025-12-30
 
 ## Char aspect ratio.
 This package assumes a character ratio of 10/22.
+
+
+## Preview image
+The preview svg was generated with these commands:
+```sh
+asciinema rec -c "pnpm run render:demo_animate 2025-07-25 2025-08-23" moon.cast
+cat moon.cast | npx svg-term-cli --out=moon.svg
+```
