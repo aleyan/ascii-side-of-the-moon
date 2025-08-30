@@ -4,6 +4,9 @@
 
 For a given date it returns a 29 row by 60 column string.
 
+![moon](https://github.com/user-attachments/assets/0baf4510-12cb-49db-a816-785334ba52ef)
+
+
 ## Example
 
 ```js
