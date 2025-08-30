@@ -3,10 +3,6 @@ name: Create Release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Version to release (e.g., 1.0.0)'
-        required: true
-        type: string
       release_notes:
         description: 'Release notes (optional)'
         required: false
@@ -19,17 +15,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get package version
+        id: package-version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ github.event.inputs.version }}
-          release_name: Release v${{ github.event.inputs.version }}
+          tag_name: v${{ steps.package-version.outputs.version }}
+          release_name: Release v${{ steps.package-version.outputs.version }}
           body: |
             ## What's Changed
             
             ${{ github.event.inputs.release_notes || 'Bug fixes and improvements' }}
+            
+            ## Version: ${{ steps.package-version.outputs.version }}
             
             ## Installation
             

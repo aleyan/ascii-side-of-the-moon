@@ -5,12 +5,13 @@ This project uses GitHub Actions for automated npm publishing and releases.
 ## 🚀 Publishing a New Version
 
 ### Option 1: GitHub Release (Recommended)
-1. Go to [Actions](https://github.com/aleyan/ascii-side-of-the-moon/actions) tab
-2. Click on "Create Release" workflow
-3. Click "Run workflow"
-4. Enter the version (e.g., `1.0.0`, `1.1.0`, `2.0.0`)
-5. Add release notes (optional)
-6. Click "Run workflow"
+1. **Update version locally first**: `pnpm version patch` (or `minor`/`major`)
+2. **Push the version bump**: `git push && git push --tags`
+3. **Go to [Actions](https://github.com/aleyan/ascii-side-of-the-moon/actions) tab**
+4. **Click on "Create Release" workflow**
+5. **Click "Run workflow"**
+6. **Add release notes (optional)**
+7. **Click "Run workflow"**
 
 This will:
 - Create a GitHub release with the specified version
@@ -51,11 +52,29 @@ Before using GitHub Actions, you need to:
 - **Publish**: Runs when releases are published
 - **Create Release**: Manual workflow for creating releases
 
-## 📝 Version Guidelines
+## 📝 Version Management
 
+### **Updating Version:**
+```bash
+# Bug fixes (1.0.0 → 1.0.1)
+pnpm version patch
+
+# New features (1.0.0 → 1.1.0)  
+pnpm version minor
+
+# Breaking changes (1.0.0 → 2.0.0)
+pnpm version major
+```
+
+### **Version Guidelines:**
 - **Patch** (`1.0.1`): Bug fixes
 - **Minor** (`1.1.0`): New features, backward compatible
 - **Major** (`2.0.0`): Breaking changes
+
+### **Important:**
+- **Always update version locally first** before creating GitHub release
+- **Version in package.json must match** what gets published
+- **GitHub Action automatically reads** the correct version
 
 ## 🚨 Troubleshooting
 
