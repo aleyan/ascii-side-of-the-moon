@@ -3,14 +3,14 @@ import moonData from "./ascii.json";
 
 /** 
  * Fixed frame size in characters.
- * Width: 58 characters
- * Height: 27 characters
+ * Width: 60 characters
+ * Height: 29 characters
  * Characters have a 10:22 width:height aspect ratio, meaning each character
  * is roughly twice as tall as it is wide. This affects how we calculate
  * circular shapes like the moon's phase.
  */
-export const FRAME_W = 58; // characters
-export const FRAME_H = 27; // characters
+export const FRAME_W = 60; // characters
+export const FRAME_H = 29; // characters
 
 /**
  * Calculate dimensions and center point of ASCII moon art by finding non-space boundaries.
@@ -175,7 +175,7 @@ function findNearestMoonState(state: MoonState) {
 }
 
 /**
- * Render a 58×27 moon using pre-rendered ASCII art.
+ * Render a 60×29 moon using pre-rendered ASCII art.
  * - Uses nearest pre-rendered moon for distance and libration
  * - Applies phase masking via Lambertian lighting
  * - Fallback: if nothing lights up (ultra-thin crescent), select the top

@@ -65,9 +65,9 @@ describe('asciiMoonDim', () => {
     const nearDim = asciiMoonDim(nearMoon.ascii);
     const farDim = asciiMoonDim(farMoon.ascii);
     
-    // Both should be smaller than frame
-    expect(nearDim.width).toBe(FRAME_W);
-    expect(nearDim.height).toBe(FRAME_H);
+    // Both should be smaller than or equal to frame
+    expect(nearDim.width).toBeLessThanOrEqual(FRAME_W);
+    expect(nearDim.height).toBeLessThanOrEqual(FRAME_H);
     expect(farDim.width).toBeLessThan(FRAME_W);
     expect(farDim.height).toBeLessThan(FRAME_H);
     

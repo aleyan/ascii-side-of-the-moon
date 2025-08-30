@@ -2,7 +2,7 @@
 
 `ascii-side-of-the-moon` is a small library that prints an ascii representation of the moon on a given date.
 
-For a given date it returns a 27 row by 58 column string.
+For a given date it returns a 29 row by 60 column string.
 
 ## Example
 
