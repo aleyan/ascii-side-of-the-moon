@@ -24,8 +24,8 @@
     "build": "tsup --clean",
     "dev": "vitest",
     "test": "vitest run",
-    "gen:almanac": "tsx scripts/generate-almanac.ts",
-    "verify": "tsx scripts/verify-against-astronomy-engine.ts",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "render:demo": "tsx scripts/demo-render.ts",
     "render:demo_animate": "tsx scripts/demo-animate.ts",
     "export:moon-data": "tsx scripts/export-moon-data.ts"
@@ -39,15 +39,29 @@
     "cloudflare-workers",
     "esm"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Alex Yankov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ascii-side-of-the-moon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ascii-side-of-the-moon/issues"
+  },
+  "homepage": "https://github.com/yourusername/ascii-side-of-the-moon#readme",
   "packageManager": "pnpm@10.15.0",
   "engines": {
     "node": ">=18.17"
   },
+  "dependencies": {
+    "astronomy-engine": "^2.1.19"
+  },
   "devDependencies": {
+    "@eslint/js": "^9.34.0",
     "@types/node": "^24.3.0",
-    "astronomy-engine": "^2.1.19",
+    "@typescript-eslint/eslint-plugin": "^8.41.0",
+    "@typescript-eslint/parser": "^8.41.0",
+    "eslint": "^9.34.0",
     "tsup": "^8.5.0",
     "tsx": "^4.16.2",
     "typescript": "^5.9.2",

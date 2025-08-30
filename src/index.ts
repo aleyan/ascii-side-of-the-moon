@@ -1,4 +1,4 @@
-export { getMoonState } from "./render/astronomy";
+export { getMoonState } from "./core/astronomy";
 export { renderMoon } from "./render/renderer";
 
 export type {

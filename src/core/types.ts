@@ -29,6 +29,17 @@ export interface MoonState {
   libration: MoonLibration;
 }
 
+export interface MoonAsciiDimensions {
+  /** Width of the moon in characters (excluding padding) */
+  width: number;
+  /** Height of the moon in characters (excluding padding) */
+  height: number;
+  /** X-coordinate of center in characters from left edge */
+  centerX: number;
+  /** Y-coordinate of center in characters from top edge */
+  centerY: number;
+}
+
 export interface RenderOptions {
   /** Number of text rows to use. (Renderer currently fixes output to FRAME_H.) */
   lines?: number;

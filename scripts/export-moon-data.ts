@@ -1,5 +1,5 @@
 import { writeFileSync } from "fs";
-import { getMoonState } from "../src/render/astronomy";
+import { getMoonState } from "../src/core/astronomy";
 
 function* eachDayInclusive(start: Date, end: Date): Generator<Date> {
   let d = new Date(start.getTime());

@@ -1,7 +1,6 @@
-/* eslint-disable no-console */
-import type { MoonState } from "../src/core/types";
+ 
 import { renderMoon } from "../src/render/renderer";
-import { getMoonState } from "../src/render/astronomy";
+import { getMoonState } from "../src/core/astronomy";
 
 // Parse args: 0, 1, or 2 YYYY-MM-DD dates.
 const argv = process.argv.slice(2);
@@ -25,7 +24,7 @@ function addDays(d: Date, days: number) {
 }
 
 function* eachDayInclusive(start: Date, end: Date): Generator<Date> {
-  let d = new Date(start.getTime());
+  const d = new Date(start.getTime());
   while (d.getTime() <= end.getTime()) {
     yield new Date(d.getTime());
     d.setDate(d.getDate() + 1);

@@ -30,3 +30,6 @@ Render an animation:
 ```sh
 pnpm run render:demo_animate 2025-01-01 2025-12-30
 ```
+
+## Char aspect ratio.
+This package assumes a character ratio of 10/22.

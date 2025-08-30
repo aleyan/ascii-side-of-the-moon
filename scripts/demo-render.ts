@@ -1,7 +1,7 @@
-/* eslint-disable no-console */
-import type { MoonState } from "../src/core/types";
+ 
+
 import { renderMoon } from "../src/render/renderer";
-import { getMoonState } from "../src/render/astronomy";
+import { getMoonState } from "../src/core/astronomy";
 
 function parseDateYYYYMMDD(s: string): Date {
   const match = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -9,7 +9,7 @@ function parseDateYYYYMMDD(s: string): Date {
     console.error("Date must be in YYYY-MM-DD format");
     process.exit(1);
   }
-  const [_, Y, M, D] = match.slice();
+  const [, Y, M, D] = match.slice();
   const date = new Date(+Y, +M - 1, +D, 0, 0, 0, 0);
   if (isNaN(date.getTime())) {
     console.error("Invalid date");
