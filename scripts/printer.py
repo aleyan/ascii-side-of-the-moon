@@ -27,9 +27,42 @@ def load_moon_data():
         print(f"Error loading moon data: {e}")
         return []
 
+def analyze_ascii_art(ascii_text):
+    """Analyze ASCII art and return statistics."""
+    lines = ascii_text.split('\n')
+    
+    # Count total lines
+    total_lines = len(lines)
+    
+    # Count non-whitespace lines (lines with at least one non-whitespace character)
+    # A line is considered empty if it contains only spaces, tabs, or other whitespace
+    non_whitespace_lines = sum(1 for line in lines if line.strip() != '')
+    
+    # Find the widest line and count columns
+    max_width = max(len(line) for line in lines) if lines else 0
+    
+    # Find the line with the most non-whitespace characters
+    max_non_whitespace_cols = 0
+    for line in lines:
+        # Count non-whitespace characters in this line
+        non_ws_chars = len([char for char in line if not char.isspace()])
+        max_non_whitespace_cols = max(max_non_whitespace_cols, non_ws_chars)
+    
+    return {
+        'total_lines': total_lines,
+        'non_whitespace_lines': non_whitespace_lines,
+        'total_columns': max_width,
+        'non_whitespace_columns': max_non_whitespace_cols
+    }
+
 def print_moon_info(moon):
     """Print detailed information for a single moon on one line."""
     print(f"Moon #{moon['index']} | Distance: {moon['distance_km']:.1f} km | Libration: {moon['libration_elat']:.3f}° lat, {moon['libration_elon']:.3f}° lon")
+    
+    # Analyze the ASCII art
+    stats = analyze_ascii_art(moon['ascii'])
+    print(f"ASCII Stats: {stats['total_lines']} lines ({stats['non_whitespace_lines']} non-empty) | {stats['total_columns']} cols max | {stats['non_whitespace_columns']} non-whitespace cols max")
+    
     print("ASCII Representation:")
     print(moon['ascii'])
     print()

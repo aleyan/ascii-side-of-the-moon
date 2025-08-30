@@ -36,7 +36,7 @@ for _, row in clusters_df.iterrows():
     
     try:
         # Run chafa and capture output
-        ascii_art = subprocess.check_output(cmd, text=True).strip()
+        ascii_art = subprocess.check_output(cmd, text=True)
         
         # Add to result
         result.append({
