@@ -20,33 +20,31 @@ jobs:
         run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Create Release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.package-version.outputs.version }}
-          release_name: Release v${{ steps.package-version.outputs.version }}
-          body: |
-            ## What's Changed
-            
-            ${{ github.event.inputs.release_notes || 'Bug fixes and improvements' }}
-            
-            ## Version: ${{ steps.package-version.outputs.version }}
-            
-            ## Installation
-            
-            ```bash
-            npm install ascii-side-of-the-moon
-            ```
-            
-            ## Usage
-            
-            ```typescript
-            import { getMoonState, renderMoon } from 'ascii-side-of-the-moon';
-            
-            const moonState = getMoonState(new Date());
-            const asciiArt = renderMoon(moonState);
-            console.log(asciiArt);
-            ```
-          draft: false
-          prerelease: false
+        run: |
+          gh release create v${{ steps.package-version.outputs.version }} \
+            --title "Release v${{ steps.package-version.outputs.version }}" \
+            --notes "## What's Changed
+
+          ${{ github.event.inputs.release_notes || 'Bug fixes and improvements' }}
+
+          ## Version: ${{ steps.package-version.outputs.version }}
+
+          ## Installation
+
+          \`\`\`bash
+          npm install ascii-side-of-the-moon
+          \`\`\`
+
+          ## Usage
+
+          \`\`\`typescript
+          import { getMoonState, renderMoon } from 'ascii-side-of-the-moon';
+
+          const moonState = getMoonState(new Date());
+          const asciiArt = renderMoon(moonState);
+          console.log(asciiArt);
+          \`\`\`" \
+            --draft=false \
+            --prerelease=false
