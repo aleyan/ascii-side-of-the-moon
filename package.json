@@ -28,7 +28,9 @@
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "render:demo": "tsx scripts/demo-render.ts",
     "render:demo_animate": "tsx scripts/demo-animate.ts",
-    "export:moon-data": "tsx scripts/export-moon-data.ts"
+    "export:moon-data": "tsx scripts/export-moon-data.ts",
+    "version": "git add -A && git commit -m \"chore: bump version to $npm_version\" && git tag v$npm_version",
+    "postversion": "git push && git push --tags"
   },
   "keywords": [
     "moon",
