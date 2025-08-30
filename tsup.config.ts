@@ -10,5 +10,10 @@ export default defineConfig({
   treeshake: true,
   env: { NODE_ENV: "production" },
   outDir: "dist",
-  target: "es2022"
+  target: "es2022",
+  outExtension({ format }) {
+    return {
+      js: format === "esm" ? ".mjs" : ".cjs",
+    };
+  },
 });
