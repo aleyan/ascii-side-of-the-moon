@@ -4,20 +4,18 @@ This project uses GitHub Actions for automated npm publishing and releases.
 
 ## 🚀 Publishing a New Version
 
-### Option 1: GitHub Release (Recommended)
-1. **Update version locally first**: `pnpm version patch` (or `minor`/`major`)
+### Option 1: Automated Release (Recommended)
+1. **Update version locally**: `pnpm version patch` (or `minor`/`major`)
 2. **Push the version bump**: `git push && git push --tags`
-3. **Go to [Actions](https://github.com/aleyan/ascii-side-of-the-moon/actions) tab**
-4. **Click on "Create Release" workflow**
-5. **Click "Run workflow"**
-6. **Add release notes (optional)**
-7. **Click "Run workflow"**
+3. **GitHub automatically creates** a draft release with generated notes
+4. **Review and publish** via the "Releases" tab
+5. **npm publishing** happens automatically when you publish the release
 
 This will:
-- Create a GitHub release with the specified version
-- Automatically trigger the publish workflow
-- Run tests, linting, and build
-- Publish to npm
+- Automatically generate release notes from your commits
+- Create a draft GitHub release
+- Let you review and edit before publishing
+- Automatically trigger npm publishing when you publish the release
 
 ### Option 2: Manual Release
 1. Create a new GitHub release manually
@@ -49,8 +47,8 @@ Before using GitHub Actions, you need to:
 ## 🔄 Workflow Details
 
 - **CI**: Runs on every push/PR (tests, linting, build)
-- **Publish**: Runs when releases are published
-- **Create Release**: Manual workflow for creating releases
+- **Release Drafter**: Automatically creates draft releases when tags are pushed
+- **Publish**: Runs when releases are published (triggers npm publishing)
 
 ## 📝 Version Management
 
