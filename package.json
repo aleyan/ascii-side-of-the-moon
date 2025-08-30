@@ -29,6 +29,7 @@
     "render:demo": "tsx scripts/demo-render.ts",
     "render:demo_animate": "tsx scripts/demo-animate.ts",
     "export:moon-data": "tsx scripts/export-moon-data.ts",
+    "prepack": "npm run build",
     "version": "git add -A && git commit -m \"chore: bump version to $npm_version\" && git tag v$npm_version",
     "postversion": "git push && git push --tags"
   },
