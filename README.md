@@ -4,6 +4,9 @@
 
 For a given date it returns a 29 row by 60 column string.
 
+![moon](https://github.com/user-attachments/assets/0baf4510-12cb-49db-a816-785334ba52ef)
+
+
 ## Example
 
 ```js
@@ -35,3 +38,11 @@ pnpm run render:demo_animate 2025-01-01 2025-12-30
 
 ## Char aspect ratio.
 This package assumes a character ratio of 10/22.
+
+
+## Preview image
+The preview svg was generated with these commands:
+```sh
+asciinema rec -c "pnpm run render:demo_animate 2025-07-25 2025-08-23" moon.cast
+cat moon.cast | npx svg-term-cli --out=moon.svg
+```
