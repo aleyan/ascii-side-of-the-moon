@@ -1,11 +1,14 @@
 {
   "name": "ascii-side-of-the-moon",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Tiny Moon phase/size/libration + Unicode terminal renderer. Zero runtime deps; dev-only almanac generated with astronomy-engine.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "ascii-side-of-the-moon": "./dist/cli.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
