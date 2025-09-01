@@ -7,7 +7,7 @@
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "ascii-side-of-the-moon": "./dist/cli.js"
+    "ascii-side-of-the-moon": "./dist/cli.cjs"
   },
   "exports": {
     ".": {
