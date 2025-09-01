@@ -1,6 +1,6 @@
  
 import { renderMoon } from "../src/render/renderer";
-import { getMoonState } from "../src/core/astronomy";
+import { getMoonState, getMoonPhase } from "../src/core/astronomy";
 
 // Parse args: 0, 1, or 2 YYYY-MM-DD dates.
 const argv = process.argv.slice(2);
@@ -67,7 +67,8 @@ async function main() {
       `phase=${st.phase.phaseAngleDeg.toFixed(1).padStart(5)}°  ` +
       `waxing=${st.phase.isWaxing ? "yes" : "no"}  ` +
       `dist=${st.size.distanceKm.toFixed(0).padStart(6)} km\n` +
-      `Libration: lat=${st.libration.elat.toFixed(1).padStart(5)}°  lon=${st.libration.elon.toFixed(1).padStart(5)}°`;
+      `Libration: lat=${st.libration.elat.toFixed(1).padStart(5)}°  lon=${st.libration.elon.toFixed(1).padStart(5)}°\n` +
+      `Moon Phase: ${getMoonPhase(st)}`;
     console.log(info);
     console.log(art);
     await new Promise(res => setTimeout(res, 100)); // 0.1s per frame

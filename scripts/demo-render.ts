@@ -1,7 +1,7 @@
  
 
 import { renderMoon } from "../src/render/renderer";
-import { getMoonState } from "../src/core/astronomy";
+import { getMoonState, getMoonPhase } from "../src/core/astronomy";
 
 function parseDateYYYYMMDD(s: string): Date {
   const match = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -37,7 +37,8 @@ const info =
   `phase=${state.phase.phaseAngleDeg.toFixed(1).padStart(5)}°  ` +
   `waxing=${state.phase.isWaxing ? "yes" : "no"}  ` +
   `dist=${state.size.distanceKm.toFixed(0).padStart(6)} km\n` +
-  `Libration: lat=${state.libration.elat.toFixed(1).padStart(5)}°  lon=${state.libration.elon.toFixed(1).padStart(5)}°`;
+  `Libration: lat=${state.libration.elat.toFixed(1).padStart(5)}°  lon=${state.libration.elon.toFixed(1).padStart(5)}°\n` +
+  `Moon Phase: ${getMoonPhase(state)}`;
 
 console.log(info);
 console.log(renderMoon(state, { lines: 20 }));
