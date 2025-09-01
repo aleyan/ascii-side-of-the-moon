@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getMoonState } from "../astronomy";
+import { getMoonState, getMoonPhase } from "../astronomy";
 
 describe("getMoonState", () => {
   // Test dates chosen for specific moon phases
@@ -43,7 +43,7 @@ describe("getMoonState", () => {
   it("correctly identifies waxing phase", () => {
     const state = getMoonState(WAXING_QUARTER_DATE);
     expect(state.phase.isWaxing).toBe(true);
-    // For ASCII art, waxing quarter is roughly 90° ± 30°
+    // For ASCII art, waxing quarter is roughly 90° ± 20°
     expect(Math.abs(state.phase.phaseAngleDeg - 90)).toBeLessThan(20);
     expect(state.phase.illuminatedFraction).toBeGreaterThan(0.3); // Should be partially illuminated
     expect(state.phase.illuminatedFraction).toBeLessThan(0.7);
@@ -73,5 +73,70 @@ describe("getMoonState", () => {
     // Libration should be within reasonable bounds (±7.7° latitude, ±7.9° longitude)
     expect(Math.abs(state.libration.elat)).toBeLessThan(8);
     expect(Math.abs(state.libration.elon)).toBeLessThan(8);
+  });
+});
+
+describe("getMoonPhase", () => {
+  function mk(angle: number, frac: number, waxing: boolean) {
+    return {
+      date: new Date(),
+      phase: {
+        phaseAngleDeg: angle,
+        illuminatedFraction: frac,
+        isWaxing: waxing
+      },
+      size: { distanceKm: 384400, angularDiameterDeg: 0.5 },
+      libration: { elon: 0, elat: 0 }
+    };
+  }
+
+  it("returns 'New Moon' near 180° (or very low illumination)", () => {
+    expect(getMoonPhase(mk(180, 0.01, true))).toBe("New Moon");
+    expect(getMoonPhase(mk(179, 0.01, false))).toBe("New Moon");
+  });
+
+  it("returns 'Full Moon' near 0° (or very high illumination)", () => {
+    expect(getMoonPhase(mk(0, 0.99, false))).toBe("Full Moon");
+    expect(getMoonPhase(mk(5, 0.985, true))).toBe("Full Moon");
+  });
+
+  it("returns 'First Quarter' at 90° when waxing", () => {
+    expect(getMoonPhase(mk(90, 0.5, true))).toBe("First Quarter");
+  });
+
+  it("returns 'Last Quarter' at 90° when waning", () => {
+    expect(getMoonPhase(mk(90, 0.5, false))).toBe("Last Quarter");
+  });
+
+  it("classifies 'Waxing Crescent' when angle > 90° and waxing", () => {
+    expect(getMoonPhase(mk(120, 0.25, true))).toBe("Waxing Crescent");
+    expect(getMoonPhase(mk(135, 0.15, true))).toBe("Waxing Crescent");
+  });
+
+  it("classifies 'Waning Crescent' when angle > 90° and waning", () => {
+    expect(getMoonPhase(mk(120, 0.25, false))).toBe("Waning Crescent");
+  });
+
+  it("classifies 'Waxing Gibbous' when angle < 90° and waxing", () => {
+    expect(getMoonPhase(mk(45, 0.75, true))).toBe("Waxing Gibbous");
+  });
+
+  it("classifies 'Waning Gibbous' when angle < 90° and waning", () => {
+    expect(getMoonPhase(mk(60, 0.65, false))).toBe("Waning Gibbous");
+  });
+
+  it("treats exactly 50% illumination as a Quarter (waxing→First, waning→Last)", () => {
+    expect(getMoonPhase(mk(90, 0.5, true))).toBe("First Quarter");
+    expect(getMoonPhase(mk(90, 0.5, false))).toBe("Last Quarter");
+  });
+
+  it("does not call 25% illumination a Quarter (it's Crescent)", () => {
+    expect(getMoonPhase(mk(120, 0.25, true))).toBe("Waxing Crescent");
+    expect(getMoonPhase(mk(120, 0.25, false))).toBe("Waning Crescent");
+  });
+
+  it("supports angles beyond 180° by folding (e.g., 270° behaves like 90°)", () => {
+    expect(getMoonPhase(mk(270, 0.5, false))).toBe("Last Quarter");
+    expect(getMoonPhase(mk(270, 0.5, true))).toBe("First Quarter");
   });
 });
