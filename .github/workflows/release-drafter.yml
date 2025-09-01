@@ -25,5 +25,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: Release ${{ github.ref_name }}
-          tag: ${{ github.ref_name }}
           publish: false
