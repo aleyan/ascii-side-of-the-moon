@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports, no-undef */
 
 const { getMoonState, renderMoon } = require("./index.js");
 
