@@ -20,7 +20,7 @@ export default defineConfig([
   },
   {
     entry: ["src/cli.ts"],
-    format: ["esm"],
+    format: ["cjs"],
     minify: false,
     clean: false,
     treeshake: false,
@@ -28,7 +28,7 @@ export default defineConfig([
     outDir: "dist",
     target: "es2022",
     outExtension() {
-      return { js: ".js" };
+      return { js: ".cjs" };
     },
   },
 ]);

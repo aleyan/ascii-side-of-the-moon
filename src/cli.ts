@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+/* eslint-disable @typescript-eslint/no-require-imports, no-undef */
 
-import { getMoonState, renderMoon } from "./index.js";
+const { getMoonState, renderMoon } = require("./index.js");
 
 function main() {
   const args = process.argv.slice(2);
@@ -27,12 +28,14 @@ function main() {
     const asciiMoon = renderMoon(moonState);
     
     console.log(asciiMoon);
+
   } catch (error) {
     console.error("Error rendering moon:", error);
     process.exit(1);
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+
+if (require.main === module) {
   main();
 }
