@@ -6,6 +6,17 @@ For a given date it returns a 29 row by 60 column string.
 
 ![moon](https://github.com/user-attachments/assets/0baf4510-12cb-49db-a816-785334ba52ef)
 
+## CLI Usage
+
+You can use this package directly from the command line:
+
+```bash
+# Show moon for current date
+npx ascii-side-of-the-moon
+
+# Show moon for a specific date
+npx ascii-side-of-the-moon 2025-01-01
+```
 
 ## Example
 
