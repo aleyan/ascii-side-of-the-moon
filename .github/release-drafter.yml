@@ -1,6 +1,7 @@
 name-template: 'Release $RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
-version-resolver: package-json
+version-resolver:
+  type: package-json
 categories:
   - title: '🚀 Features'
     labels:
