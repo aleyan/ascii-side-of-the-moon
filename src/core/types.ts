@@ -26,7 +26,8 @@ export interface MoonPosition {
   azimuth: number;
   /** Altitude (degrees): +90=Zenith, 0=Horizon, -90=Nadir. */
   altitude: number;
-  /** Parallactic angle (degrees): Rotation of the moon's disk relative to the zenith. */
+  /** Parallactic angle (degrees): Rotation of the moon's disk relative to the zenith (positive = clockwise).
+   */
   parallacticAngle: number;
 }
 
