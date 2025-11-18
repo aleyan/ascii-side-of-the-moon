@@ -21,12 +21,23 @@ export interface MoonSize {
   angularDiameterDeg: number;
 }
 
+export interface MoonPosition {
+  /** Azimuth (degrees): 0=North, 90=East, etc. */
+  azimuth: number;
+  /** Altitude (degrees): +90=Zenith, 0=Horizon, -90=Nadir. */
+  altitude: number;
+  /** Parallactic angle (degrees): Rotation of the moon's disk relative to the zenith. */
+  parallacticAngle: number;
+}
+
 export interface MoonState {
   date: Date;
   /** Phase angle (deg): 0=full, 180=new (per Astronomy Engine convention for phase angle). */
   phase: MoonPhase;
   size: MoonSize;
   libration: MoonLibration;
+  /** Observer-dependent position. Undefined if no location provided. */
+  position?: MoonPosition;
 }
 
 export interface MoonAsciiDimensions {
