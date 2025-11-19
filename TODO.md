@@ -9,8 +9,8 @@ An ordered, pragmatic path to a tiny, dependency-free Moon renderer.
 - [x] Public API skeleton: `getMoonState(date)`, `renderMoon(state, opts)`.
 
 ## 1) Core Features
-- [ ] Calculate Moon position (Altitude, Azimuth) based on observer location.
-- [ ] Calculate Parallactic Angle (Rotation) based on observer location.
+- [x] Calculate Moon position (Altitude, Azimuth) based on observer location.
+- [x] Calculate Parallactic Angle (Rotation) based on observer location.
 - [ ] Render rotated moon.
 - [ ] Render horizon line and clip moon when near/below horizon.
 
