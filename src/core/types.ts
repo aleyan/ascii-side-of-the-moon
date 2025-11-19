@@ -21,13 +21,21 @@ export interface MoonSize {
   angularDiameterDeg: number;
 }
 
+export interface ObserverLocation {
+  /** Latitude in degrees (positive north). */
+  latitude: number;
+  /** Longitude in degrees (positive east). */
+  longitude: number;
+  /** Elevation above mean sea level in meters. Defaults to 0 if omitted. */
+  elevationMeters?: number;
+}
+
 export interface MoonPosition {
   /** Azimuth (degrees): 0=North, 90=East, etc. */
   azimuth: number;
   /** Altitude (degrees): +90=Zenith, 0=Horizon, -90=Nadir. */
   altitude: number;
-  /** Parallactic angle (degrees): Rotation of the moon's disk relative to the zenith (positive = clockwise).
-   */
+  /** Parallactic angle (degrees): Rotation of the moon's disk relative to the zenith (positive = clockwise). */
   parallacticAngle: number;
 }
 
