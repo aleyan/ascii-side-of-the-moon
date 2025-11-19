@@ -15,7 +15,13 @@ You can use this package directly from the command line:
 npx ascii-side-of-the-moon
 
 # Show moon for a specific date
-npx ascii-side-of-the-moon 2025-09-21
+npx ascii-side-of-the-moon 2025-09-19
+
+# Include a specific UTC time (quote when using spaces)
+npx ascii-side-of-the-moon "2025-09-19 21:30"
+
+# Provide an observer location (latitude/longitude in degrees, optional elevation in meters)
+npx ascii-side-of-the-moon 2025-09-19T21:30 --lat 37.7749 --lon -122.4194 --elevation 25
 ```
 
 The CLI will display the ASCII moon art along with information about the moon's phase, illumination percentage, distance, and angular diameter.
@@ -62,6 +68,9 @@ pnpm run render:demo 2025-01-01
 Render an animation:
 ```sh
 pnpm run render:demo_animate 2025-01-01 2025-12-30
+
+# Include observer coordinates (latitude/longitude degrees, optional elevation meters)
+pnpm run render:demo_animate 2025-07-25 2025-08-23 --lat 37.7749 --lon -122.4194 --elevation 25
 ```
 
 Both demo scripts now include the moon phase name in their output.

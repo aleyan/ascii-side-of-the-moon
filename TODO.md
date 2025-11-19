@@ -15,8 +15,8 @@ An ordered, pragmatic path to a tiny, dependency-free Moon renderer.
 - [ ] Render horizon line and clip moon when near/below horizon.
 
 ## 2) CLI
-- [ ] Support HH:MM time format in date argument.
-- [ ] Support optional Latitude/Longitude arguments.
+- [x] Support HH:MM time format in date argument.
+- [x] Support optional Latitude/Longitude arguments.
 
 ---
 **Commands**
