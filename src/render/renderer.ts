@@ -13,6 +13,12 @@ export const FRAME_W = 60; // characters
 export const FRAME_H = 29; // characters
 
 /**
+ * Base angle offset for rotation.
+ * This is a manual tweak to align the rotation with public well-known photos of the moon.
+ */
+export const BASE_ANGLE_OFFSET = 0;
+
+/**
  * Calculate dimensions and center point of ASCII moon art by finding non-space boundaries.
  * All measurements are in character units.
  * 
@@ -175,6 +181,62 @@ function findNearestMoonState(state: MoonState) {
 }
 
 /**
+ * Rotates an ASCII image by a given angle in degrees (clockwise).
+ * Uses reverse mapping (for each output pixel, find source) to avoid gaps.
+ * 
+ * @param ascii - The input ASCII string
+ * @param angleDeg - Rotation angle in degrees (clockwise positive)
+ * @returns Rotated ASCII string
+ */
+export function rotateImage(ascii: string, angleDeg: number): string {
+  // Normalize angle
+  const angle = ((angleDeg % 360) + 360) % 360;
+  if (Math.abs(angle) < 0.1) return ascii;
+
+  const lines = ascii.split('\n');
+  const height = lines.length;
+  const width = lines[0]?.length ?? 0;
+  
+  const centerX = (width - 1) / 2;
+  const centerY = (height - 1) / 2;
+  
+  // Rotation in radians (clockwise in screen coords where +y is down)
+  const rads = rad(angle);
+  const cosA = Math.cos(rads);
+  const sinA = Math.sin(rads);
+
+  // Create output buffer
+  const output: string[][] = Array.from({ length: height }, () => Array(width).fill(' '));
+  
+  // Reverse mapping: for each output pixel, find the source pixel
+  for (let outY = 0; outY < height; outY++) {
+    for (let outX = 0; outX < width; outX++) {
+      // Convert output coordinates to centered space
+      const dx = outX - centerX;
+      const dy = outY - centerY;
+      
+      // Rotate backwards (inverse rotation) to find source position
+      // For clockwise rotation by angle θ, inverse is counterclockwise by θ
+      // Rotation matrix for counterclockwise: [cos, -sin; sin, cos]
+      const srcDx = dx * cosA - dy * sinA;
+      const srcDy = dx * sinA + dy * cosA;
+      
+      // Convert back to screen coordinates
+      const srcX = Math.round(srcDx + centerX);
+      const srcY = Math.round(srcDy + centerY);
+      
+      // Sample from source if in bounds
+      if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+        const char = lines[srcY]?.[srcX] ?? ' ';
+        output[outY][outX] = char;
+      }
+    }
+  }
+
+  return output.map(row => row.join('')).join('\n');
+}
+
+/**
  * Render a 60×29 moon using pre-rendered ASCII art.
  * - Uses nearest pre-rendered moon for distance and libration
  * - Applies phase masking via Lambertian lighting
@@ -280,5 +342,12 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     out.push(row);
   }
 
-  return out.join("\n");
+  const rendered = out.join("\n");
+
+  // Apply rotation if parallactic angle is available
+  if (state.position?.parallacticAngle !== undefined) {
+    return rotateImage(rendered, state.position.parallacticAngle + BASE_ANGLE_OFFSET);
+  }
+
+  return rendered;
 }
