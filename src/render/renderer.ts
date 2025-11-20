@@ -338,59 +338,13 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     }
   }
 
-  // Rotate the moon art (ASCII) and lit mask together if rotation requested
-  let rotatedAsciiLines = asciiLines;
-  let rotatedLitMask = litMask;
-  
-  if (state.position?.parallacticAngle !== undefined) {
-    const angle = state.position.parallacticAngle + BASE_ANGLE_OFFSET;
-    const moonAscii = asciiLines.join("\n");
-    const rotationCenter = asciiMoonDim(moonAscii);
-
-    // Rotate ASCII art first
-    const rotatedAscii = rotateCharacters(
-      moonAscii,
-      angle,
-      rotationCenter.centerX,
-      rotationCenter.centerY
-    );
-    rotatedAsciiLines = rotatedAscii.split("\n");
-
-    // Rotate the lit mask using the same transformation
-    const rads = (angle * Math.PI) / 180;
-    const cosA = Math.cos(rads);
-    const sinA = Math.sin(rads);
-    const cx = rotationCenter.centerX;
-    const cy = rotationCenter.centerY;
-
-    rotatedLitMask = Array.from({ length: FRAME_H }, () => Array(FRAME_W).fill(false));
-
-    for (let outY = 0; outY < FRAME_H; outY++) {
-      for (let outX = 0; outX < FRAME_W; outX++) {
-        const dx = outX - cx;
-        const dy = (outY - cy) * CHAR_ASPECT; // Aspect ratio correction
-
-        // Inverse rotation
-        const srcDx = dx * cosA - dy * sinA;
-        const srcDy = dx * sinA + dy * cosA;
-        
-        const srcX = Math.round(srcDx + cx);
-        const srcY = Math.round((srcDy / CHAR_ASPECT) + cy); // Aspect ratio correction
-
-        if (srcX >= 0 && srcX < FRAME_W && srcY >= 0 && srcY < FRAME_H) {
-          rotatedLitMask[outY][outX] = litMask[srcY][srcX];
-        }
-      }
-    }
-  }
-
-  // Second pass: compose the ASCII frame
+  // Second pass: compose the ASCII frame (unrotated)
   const out: string[] = [];
   for (let iy = 0; iy < FRAME_H; iy++) {
     let row = "";
-    const src = rotatedAsciiLines[iy] ?? "";
+    const src = asciiLines[iy] ?? "";
     for (let ix = 0; ix < FRAME_W; ix++) {
-      if (rotatedLitMask[iy][ix]) {
+      if (litMask[iy][ix]) {
         row += src[ix] ?? " ";
       } else {
         row += " ";
@@ -399,5 +353,22 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     out.push(row);
   }
 
-  return out.join("\n");
+  const composed = out.join("\n");
+
+  // Apply rotation if parallactic angle is available
+  if (state.position?.parallacticAngle !== undefined) {
+    // Use the full moon texture to determine the center of rotation,
+    // so the moon doesn't "wobble" when it's a crescent.
+    // We use nearestMoon.ascii which is the full texture.
+    const rotationCenter = asciiMoonDim(nearestMoon.ascii);
+    
+    return rotateCharacters(
+      composed, 
+      state.position.parallacticAngle + BASE_ANGLE_OFFSET,
+      rotationCenter.centerX,
+      rotationCenter.centerY
+    );
+  }
+
+  return composed;
 }
