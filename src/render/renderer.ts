@@ -181,14 +181,23 @@ function findNearestMoonState(state: MoonState) {
 }
 
 /**
+ * Characters have a 10:22 width:height aspect ratio.
+ * This means a vertical step is ~2.2x larger than a horizontal step in pixel space.
+ */
+const CHAR_ASPECT = 22 / 10;
+
+/**
  * Rotates an ASCII image by a given angle in degrees (clockwise).
  * Uses reverse mapping (for each output pixel, find source) to avoid gaps.
+ * Compensates for character aspect ratio (10:22) so rotation appears circular.
  * 
  * @param ascii - The input ASCII string
  * @param angleDeg - Rotation angle in degrees (clockwise positive)
+ * @param centerX - Optional X coordinate of rotation center (defaults to frame center)
+ * @param centerY - Optional Y coordinate of rotation center (defaults to frame center)
  * @returns Rotated ASCII string
  */
-export function rotateImage(ascii: string, angleDeg: number): string {
+export function rotateCharacters(ascii: string, angleDeg: number, centerX?: number, centerY?: number): string {
   // Normalize angle
   const angle = ((angleDeg % 360) + 360) % 360;
   if (Math.abs(angle) < 0.1) return ascii;
@@ -197,11 +206,12 @@ export function rotateImage(ascii: string, angleDeg: number): string {
   const height = lines.length;
   const width = lines[0]?.length ?? 0;
   
-  const centerX = (width - 1) / 2;
-  const centerY = (height - 1) / 2;
+  // Use provided center or default to frame center
+  const cx = centerX ?? (width - 1) / 2;
+  const cy = centerY ?? (height - 1) / 2;
   
   // Rotation in radians (clockwise in screen coords where +y is down)
-  const rads = rad(angle);
+  const rads = (angle * Math.PI) / 180;
   const cosA = Math.cos(rads);
   const sinA = Math.sin(rads);
 
@@ -211,19 +221,20 @@ export function rotateImage(ascii: string, angleDeg: number): string {
   // Reverse mapping: for each output pixel, find the source pixel
   for (let outY = 0; outY < height; outY++) {
     for (let outX = 0; outX < width; outX++) {
-      // Convert output coordinates to centered space
-      const dx = outX - centerX;
-      const dy = outY - centerY;
+      // Convert output coordinates to centered space AND correct for aspect ratio
+      // We treat X as the unit, so Y is scaled up
+      const dx = outX - cx;
+      const dy = (outY - cy) * CHAR_ASPECT;
       
       // Rotate backwards (inverse rotation) to find source position
-      // For clockwise rotation by angle θ, inverse is counterclockwise by θ
-      // Rotation matrix for counterclockwise: [cos, -sin; sin, cos]
+      // Forward: x' = x*cos + y*sin, y' = -x*sin + y*cos
+      // Inverse: x = x'*cos - y'*sin, y = x'*sin + y'*cos
       const srcDx = dx * cosA - dy * sinA;
       const srcDy = dx * sinA + dy * cosA;
       
-      // Convert back to screen coordinates
-      const srcX = Math.round(srcDx + centerX);
-      const srcY = Math.round(srcDy + centerY);
+      // Convert back to screen coordinates (un-correct aspect ratio)
+      const srcX = Math.round(srcDx + cx);
+      const srcY = Math.round((srcDy / CHAR_ASPECT) + cy);
       
       // Sample from source if in bounds
       if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
@@ -327,13 +338,59 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     }
   }
 
+  // Rotate the moon art (ASCII) and lit mask together if rotation requested
+  let rotatedAsciiLines = asciiLines;
+  let rotatedLitMask = litMask;
+  
+  if (state.position?.parallacticAngle !== undefined) {
+    const angle = state.position.parallacticAngle + BASE_ANGLE_OFFSET;
+    const moonAscii = asciiLines.join("\n");
+    const rotationCenter = asciiMoonDim(moonAscii);
+
+    // Rotate ASCII art first
+    const rotatedAscii = rotateCharacters(
+      moonAscii,
+      angle,
+      rotationCenter.centerX,
+      rotationCenter.centerY
+    );
+    rotatedAsciiLines = rotatedAscii.split("\n");
+
+    // Rotate the lit mask using the same transformation
+    const rads = (angle * Math.PI) / 180;
+    const cosA = Math.cos(rads);
+    const sinA = Math.sin(rads);
+    const cx = rotationCenter.centerX;
+    const cy = rotationCenter.centerY;
+
+    rotatedLitMask = Array.from({ length: FRAME_H }, () => Array(FRAME_W).fill(false));
+
+    for (let outY = 0; outY < FRAME_H; outY++) {
+      for (let outX = 0; outX < FRAME_W; outX++) {
+        const dx = outX - cx;
+        const dy = (outY - cy) * CHAR_ASPECT; // Aspect ratio correction
+
+        // Inverse rotation
+        const srcDx = dx * cosA - dy * sinA;
+        const srcDy = dx * sinA + dy * cosA;
+        
+        const srcX = Math.round(srcDx + cx);
+        const srcY = Math.round((srcDy / CHAR_ASPECT) + cy); // Aspect ratio correction
+
+        if (srcX >= 0 && srcX < FRAME_W && srcY >= 0 && srcY < FRAME_H) {
+          rotatedLitMask[outY][outX] = litMask[srcY][srcX];
+        }
+      }
+    }
+  }
+
   // Second pass: compose the ASCII frame
   const out: string[] = [];
   for (let iy = 0; iy < FRAME_H; iy++) {
     let row = "";
-    const src = asciiLines[iy] ?? "";
+    const src = rotatedAsciiLines[iy] ?? "";
     for (let ix = 0; ix < FRAME_W; ix++) {
-      if (litMask[iy][ix]) {
+      if (rotatedLitMask[iy][ix]) {
         row += src[ix] ?? " ";
       } else {
         row += " ";
@@ -342,12 +399,5 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     out.push(row);
   }
 
-  const rendered = out.join("\n");
-
-  // Apply rotation if parallactic angle is available
-  if (state.position?.parallacticAngle !== undefined) {
-    return rotateImage(rendered, state.position.parallacticAngle + BASE_ANGLE_OFFSET);
-  }
-
-  return rendered;
+  return out.join("\n");
 }
