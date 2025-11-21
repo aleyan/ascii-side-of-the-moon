@@ -13,6 +13,12 @@ export const FRAME_W = 60; // characters
 export const FRAME_H = 29; // characters
 
 /**
+ * Base angle offset for rotation.
+ * This is a manual tweak to align the rotation with public well-known photos of the moon.
+ */
+export const BASE_ANGLE_OFFSET = 90;
+
+/**
  * Calculate dimensions and center point of ASCII moon art by finding non-space boundaries.
  * All measurements are in character units.
  * 
@@ -175,6 +181,73 @@ function findNearestMoonState(state: MoonState) {
 }
 
 /**
+ * Characters have a 10:22 width:height aspect ratio.
+ * This means a vertical step is ~2.2x larger than a horizontal step in pixel space.
+ */
+const CHAR_ASPECT = 22 / 10;
+
+/**
+ * Rotates an ASCII image by a given angle in degrees (clockwise).
+ * Uses reverse mapping (for each output pixel, find source) to avoid gaps.
+ * Compensates for character aspect ratio (10:22) so rotation appears circular.
+ * 
+ * @param ascii - The input ASCII string
+ * @param angleDeg - Rotation angle in degrees (clockwise positive)
+ * @param centerX - Optional X coordinate of rotation center (defaults to frame center)
+ * @param centerY - Optional Y coordinate of rotation center (defaults to frame center)
+ * @returns Rotated ASCII string
+ */
+export function rotateCharacters(ascii: string, angleDeg: number, centerX?: number, centerY?: number): string {
+  // Normalize angle
+  const angle = ((angleDeg % 360) + 360) % 360;
+  if (Math.abs(angle) < 0.1) return ascii;
+
+  const lines = ascii.split('\n');
+  const height = lines.length;
+  const width = lines[0]?.length ?? 0;
+  
+  // Use provided center or default to frame center
+  const cx = centerX ?? (width - 1) / 2;
+  const cy = centerY ?? (height - 1) / 2;
+  
+  // Rotation in radians (clockwise in screen coords where +y is down)
+  const rads = (angle * Math.PI) / 180;
+  const cosA = Math.cos(rads);
+  const sinA = Math.sin(rads);
+
+  // Create output buffer
+  const output: string[][] = Array.from({ length: height }, () => Array(width).fill(' '));
+  
+  // Reverse mapping: for each output pixel, find the source pixel
+  for (let outY = 0; outY < height; outY++) {
+    for (let outX = 0; outX < width; outX++) {
+      // Convert output coordinates to centered space AND correct for aspect ratio
+      // We treat X as the unit, so Y is scaled up
+      const dx = outX - cx;
+      const dy = (outY - cy) * CHAR_ASPECT;
+      
+      // Rotate backwards (inverse rotation) to find source position
+      // Forward: x' = x*cos + y*sin, y' = -x*sin + y*cos
+      // Inverse: x = x'*cos - y'*sin, y = x'*sin + y'*cos
+      const srcDx = dx * cosA - dy * sinA;
+      const srcDy = dx * sinA + dy * cosA;
+      
+      // Convert back to screen coordinates (un-correct aspect ratio)
+      const srcX = Math.round(srcDx + cx);
+      const srcY = Math.round((srcDy / CHAR_ASPECT) + cy);
+      
+      // Sample from source if in bounds
+      if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
+        const char = lines[srcY]?.[srcX] ?? ' ';
+        output[outY][outX] = char;
+      }
+    }
+  }
+
+  return output.map(row => row.join('')).join('\n');
+}
+
+/**
  * Render a 60×29 moon using pre-rendered ASCII art.
  * - Uses nearest pre-rendered moon for distance and libration
  * - Applies phase masking via Lambertian lighting
@@ -265,7 +338,7 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     }
   }
 
-  // Second pass: compose the ASCII frame
+  // Second pass: compose the ASCII frame (unrotated)
   const out: string[] = [];
   for (let iy = 0; iy < FRAME_H; iy++) {
     let row = "";
@@ -280,5 +353,22 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     out.push(row);
   }
 
-  return out.join("\n");
+  const composed = out.join("\n");
+
+  // Apply rotation if parallactic angle is available
+  if (state.position?.parallacticAngle !== undefined) {
+    // Use the full moon texture to determine the center of rotation,
+    // so the moon doesn't "wobble" when it's a crescent.
+    // We use nearestMoon.ascii which is the full texture.
+    const rotationCenter = asciiMoonDim(nearestMoon.ascii);
+    
+    return rotateCharacters(
+      composed, 
+      state.position.parallacticAngle + BASE_ANGLE_OFFSET,
+      rotationCenter.centerX,
+      rotationCenter.centerY
+    );
+  }
+
+  return composed;
 }

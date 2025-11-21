@@ -1,5 +1,6 @@
 import * as AstronomyNS from "astronomy-engine";
-import type { MoonState } from "./types";
+import type { EquatorialCoordinates } from "astronomy-engine";
+import type { MoonPosition, MoonState, ObserverLocation } from "./types";
 
 // Interop: in some loaders the API is on the default export, in others on the namespace.
 const Astronomy = (AstronomyNS as { default?: typeof AstronomyNS }).default ?? AstronomyNS;
@@ -10,13 +11,46 @@ function addDays(d: Date, days: number) {
   return n;
 }
 
+export function normalizeDegrees(angle: number) {
+  return (angle % 360 + 360) % 360;
+}
+
+export function normalizeHourAngle(hours: number) {
+  let h = (hours % 24 + 24) % 24;
+  if (h > 12) h -= 24;
+  return h;
+}
+
 function isWaxingAt(date: Date): boolean {
   const today = (Astronomy.Illumination(Astronomy.Body.Moon, date) as { phase_fraction: number }).phase_fraction;
   const tomorrow = (Astronomy.Illumination(Astronomy.Body.Moon, addDays(date, 1)) as { phase_fraction: number }).phase_fraction;
   return tomorrow > today;
 }
 
-export function getMoonState(date: Date): MoonState {
+export function calculateParallacticAngle(date: Date, location: ObserverLocation, eq: EquatorialCoordinates) {
+  const siderealTimeHours = Astronomy.SiderealTime(date);
+  const longitudeHours = location.longitude / 15;
+  const hourAngleHours = normalizeHourAngle(longitudeHours + siderealTimeHours - eq.ra);
+  const hourAngleRad = hourAngleHours * 15 * Astronomy.DEG2RAD;
+  const latitudeRad = location.latitude * Astronomy.DEG2RAD;
+  const declinationRad = eq.dec * Astronomy.DEG2RAD;
+  const numerator = Math.sin(hourAngleRad);
+  const denominator = Math.tan(latitudeRad) * Math.cos(declinationRad) - Math.sin(declinationRad) * Math.cos(hourAngleRad);
+  return Math.atan2(numerator, denominator) * Astronomy.RAD2DEG;
+}
+
+function computeMoonPosition(date: Date, location: ObserverLocation): MoonPosition {
+  const observer = new Astronomy.Observer(location.latitude, location.longitude, location.elevationMeters ?? 0);
+  const eq = Astronomy.Equator(Astronomy.Body.Moon, date, observer, true, true);
+  const horizon = Astronomy.Horizon(date, observer, eq.ra, eq.dec, "normal");
+  return {
+    azimuth: normalizeDegrees(horizon.azimuth),
+    altitude: horizon.altitude,
+    parallacticAngle: calculateParallacticAngle(date, location, eq)
+  };
+}
+
+export function getMoonState(date: Date, observerLocation?: ObserverLocation): MoonState {
   const illum = Astronomy.Illumination(Astronomy.Body.Moon, date) as { phase_angle: number; phase_fraction: number };
   const lib = Astronomy.Libration(date) as { dist_km: number; diam_deg: number; elon: number; elat: number };
   return {
@@ -33,7 +67,8 @@ export function getMoonState(date: Date): MoonState {
     libration: {
       elon: lib.elon,
       elat: lib.elat
-    }
+    },
+    position: observerLocation ? computeMoonPosition(date, observerLocation) : undefined
   };
 }
 

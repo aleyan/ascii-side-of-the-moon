@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getMoonState, getMoonPhase } from "../astronomy";
+import * as AstronomyNS from "astronomy-engine";
+import { calculateParallacticAngle, getMoonState, getMoonPhase, normalizeDegrees, normalizeHourAngle } from "../astronomy";
+
+const Astronomy = (AstronomyNS as { default?: typeof AstronomyNS }).default ?? AstronomyNS;
 
 describe("getMoonState", () => {
   // Test dates chosen for specific moon phases
@@ -74,6 +77,40 @@ describe("getMoonState", () => {
     expect(Math.abs(state.libration.elat)).toBeLessThan(8);
     expect(Math.abs(state.libration.elon)).toBeLessThan(8);
   });
+
+  it("leaves position undefined when no observer is provided", () => {
+    const state = getMoonState(FULL_MOON_DATE);
+    expect(state.position).toBeUndefined();
+  });
+
+  it("computes topocentric position and parallactic angle when observer is provided", () => {
+    // Arrange
+    const date = new Date("2024-03-24T04:00:00Z");
+    const observer = { latitude: 37.7749, longitude: -122.4194, elevationMeters: 25 };
+    const astronomyObserver = new Astronomy.Observer(observer.latitude, observer.longitude, observer.elevationMeters);
+    const eq = Astronomy.Equator(Astronomy.Body.Moon, date, astronomyObserver, true, true);
+    const horizon = Astronomy.Horizon(date, astronomyObserver, eq.ra, eq.dec, "normal");
+    const siderealTimeHours = Astronomy.SiderealTime(date);
+    let hourAngleHours = (observer.longitude / 15 + siderealTimeHours - eq.ra) % 24;
+    if (hourAngleHours < 0) hourAngleHours += 24;
+    if (hourAngleHours > 12) hourAngleHours -= 24;
+    const hourAngleRad = hourAngleHours * 15 * Astronomy.DEG2RAD;
+    const latitudeRad = observer.latitude * Astronomy.DEG2RAD;
+    const declinationRad = eq.dec * Astronomy.DEG2RAD;
+    const expectedParallactic = Math.atan2(
+      Math.sin(hourAngleRad),
+      Math.tan(latitudeRad) * Math.cos(declinationRad) - Math.sin(declinationRad) * Math.cos(hourAngleRad)
+    ) * Astronomy.RAD2DEG;
+
+    // Act
+    const state = getMoonState(date, observer);
+
+    // Assert
+    expect(state.position).toBeDefined();
+    expect(state.position?.altitude).toBeCloseTo(horizon.altitude, 6);
+    expect(state.position?.azimuth).toBeCloseTo(normalizeDegrees(horizon.azimuth), 6);
+    expect(state.position?.parallacticAngle).toBeCloseTo(expectedParallactic, 6);
+  });
 });
 
 describe("getMoonPhase", () => {
@@ -138,5 +175,123 @@ describe("getMoonPhase", () => {
   it("supports angles beyond 180° by folding (e.g., 270° behaves like 90°)", () => {
     expect(getMoonPhase(mk(270, 0.5, false))).toBe("Last Quarter");
     expect(getMoonPhase(mk(270, 0.5, true))).toBe("First Quarter");
+  });
+});
+
+describe("calculateParallacticAngle", () => {
+  function setup(dateString: string, location: { latitude: number; longitude: number; elevationMeters?: number }) {
+    const date = new Date(dateString);
+    const astronomyObserver = new Astronomy.Observer(location.latitude, location.longitude, location.elevationMeters ?? 0);
+    const eq = Astronomy.Equator(Astronomy.Body.Moon, date, astronomyObserver, true, true);
+    return { date, eq };
+  }
+
+  it("matches San Francisco on 2024-03-24T04:00Z", () => {
+    // Arrange
+    const location = { latitude: 37.7749, longitude: -122.4194, elevationMeters: 25 };
+    const { date, eq } = setup("2024-03-24T04:00:00Z", location);
+    // Act
+    const angle = calculateParallacticAngle(date, location, eq);
+    // Assert
+    expect(angle).toBeCloseTo(-48.226347, 6);
+  });
+
+  it("matches London on 2024-06-01T22:00Z", () => {
+    // Arrange
+    const location = { latitude: 51.5074, longitude: -0.1278, elevationMeters: 11 };
+    const { date, eq } = setup("2024-06-01T22:00:00Z", location);
+    // Act
+    const angle = calculateParallacticAngle(date, location, eq);
+    // Assert
+    expect(angle).toBeCloseTo(-21.08423, 6);
+  });
+
+  it("matches Sydney on 2024-09-17T10:00Z", () => {
+    // Arrange
+    const location = { latitude: -33.8688, longitude: 151.2093, elevationMeters: 40 };
+    const { date, eq } = setup("2024-09-17T10:00:00Z", location);
+    // Act
+    const angle = calculateParallacticAngle(date, location, eq);
+    // Assert
+    expect(angle).toBeCloseTo(-127.513838, 6);
+  });
+
+  it("matches Quito on 2024-12-05T03:00Z", () => {
+    // Arrange
+    const location = { latitude: 0, longitude: -78.4678, elevationMeters: 2850 };
+    const { date, eq } = setup("2024-12-05T03:00:00Z", location);
+    // Act
+    const angle = calculateParallacticAngle(date, location, eq);
+    // Assert
+    expect(angle).toBeCloseTo(94.013927, 6);
+  });
+});
+
+describe("normalize helpers", () => {
+  describe("normalizeDegrees", () => {
+    it("wraps positive angles greater than 360°", () => {
+      // Arrange
+      const angle = 370;
+      // Act
+      const normalized = normalizeDegrees(angle);
+      // Assert
+      expect(normalized).toBe(10);
+    });
+
+    it("wraps negative angles into [0, 360)", () => {
+      // Arrange
+      const angle = -30;
+      // Act
+      const normalized = normalizeDegrees(angle);
+      // Assert
+      expect(normalized).toBe(330);
+    });
+
+    it("returns 0 for multiples of 360°", () => {
+      // Arrange
+      const angle = 720;
+      // Act
+      const normalized = normalizeDegrees(angle);
+      // Assert
+      expect(normalized).toBe(0);
+    });
+  });
+
+  describe("normalizeHourAngle", () => {
+    it("wraps hours into [-12, 12] range", () => {
+      // Arrange
+      const hourAngle = 25;
+      // Act
+      const normalized = normalizeHourAngle(hourAngle);
+      // Assert
+      expect(normalized).toBe(1);
+    });
+
+    it("keeps negative values within range", () => {
+      // Arrange
+      const hourAngle = -1;
+      // Act
+      const normalized = normalizeHourAngle(hourAngle);
+      // Assert
+      expect(normalized).toBe(-1);
+    });
+
+    it("shifts values greater than 12 by subtracting 24", () => {
+      // Arrange
+      const hourAngle = 13;
+      // Act
+      const normalized = normalizeHourAngle(hourAngle);
+      // Assert
+      expect(normalized).toBe(-11);
+    });
+
+    it("leaves exactly 12 hours untouched", () => {
+      // Arrange
+      const hourAngle = 36;
+      // Act
+      const normalized = normalizeHourAngle(hourAngle);
+      // Assert
+      expect(normalized).toBe(12);
+    });
   });
 });

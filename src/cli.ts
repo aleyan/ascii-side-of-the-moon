@@ -1,41 +1,19 @@
 #!/usr/bin/env node
-/* eslint-disable @typescript-eslint/no-require-imports, no-undef */
 
-const { getMoonState, renderMoon } = require("./index.js");
+import { getMoonState, renderMoon } from "./index.js";
+import { parseCliArgs } from "./cli-args.js";
 
-function main() {
-  const args = process.argv.slice(2);
-  const dateArg = args[0];
-  
-  let date: Date;
-  
-  if (dateArg) {
-    // Parse the date argument
-    const parsedDate = new Date(dateArg);
-    if (isNaN(parsedDate.getTime())) {
-      console.error(`Invalid date format: ${dateArg}`);
-      console.error("Please use format: YYYY-MM-DD (e.g., 2025-01-01)");
-      process.exit(1);
-    }
-    date = parsedDate;
-  } else {
-    // Use current date if no argument provided
-    date = new Date();
-  }
-  
+export function main(argv: string[] = process.argv.slice(2)) {
   try {
-    const moonState = getMoonState(date);
+    const args = parseCliArgs(argv);
+    const moonState = getMoonState(args.date, args.observer);
     const asciiMoon = renderMoon(moonState);
-    
     console.log(asciiMoon);
-
   } catch (error) {
-    console.error("Error rendering moon:", error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Error:", message);
     process.exit(1);
   }
 }
 
-
-if (require.main === module) {
-  main();
-}
+main();

@@ -6,5 +6,7 @@ export type {
   MoonLibration,
   MoonPhase,
   MoonSize,
+  MoonPosition,
+  ObserverLocation,
   RenderOptions
 } from "./core/types";
