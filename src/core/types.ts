@@ -67,4 +67,6 @@ export interface RenderOptions {
   invert?: boolean;
   /** If true, prefer legacy block elements instead of twelfth-circle glyphs. (Unused now.) */
   forceLegacySymbols?: boolean;
+  /** Controls whether the renderer draws the horizon overlay (default true). */
+  showHorizon?: boolean;
 }

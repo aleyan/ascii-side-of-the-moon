@@ -286,4 +286,45 @@ describe("renderMoon()", () => {
     // If we trimmed right (negative elon), expect fewer lit chars near the far right edge.
     expect(lastCols(negFrame, N)).toBeLessThan(lastCols(renderMoon(base), N));
   });
+
+  describe("horizon overlay", () => {
+    const basePosition = { azimuth: 0, parallacticAngle: 0 };
+
+    it("omits horizon line when moon fully above horizon", () => {
+      const state = mkState({
+        position: { ...basePosition, altitude: 5 }
+      });
+      const frame = renderMoon(state);
+      expect(frame).not.toContain("deg-below-horizon");
+      expect(frame).not.toContain("horizon--");
+    });
+
+    it("renders horizon line across frame when intersecting horizon", () => {
+      const state = mkState({
+        position: { ...basePosition, altitude: 0 }
+      });
+      const frame = renderMoon(state);
+      expect(frame).not.toContain("deg-below-horizon");
+      const horizonRow = frame.split("\n").find(line => line.includes("horizon"));
+      expect(horizonRow).toBeTruthy();
+      expect(horizonRow?.length).toBe(FRAME_W);
+    });
+
+    it("labels when moon is fully below horizon", () => {
+      const state = mkState({
+        position: { ...basePosition, altitude: -5 }
+      });
+      const frame = renderMoon(state);
+      expect(frame).toContain("deg-below-horizon");
+    });
+
+    it("allows disabling the horizon overlay via render options", () => {
+      const state = mkState({
+        position: { ...basePosition, altitude: -5 }
+      });
+      const frame = renderMoon(state, { showHorizon: false });
+      expect(frame).not.toContain("deg-below-horizon");
+      expect(frame).not.toContain("horizon");
+    });
+  });
 });

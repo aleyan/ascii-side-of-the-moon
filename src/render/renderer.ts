@@ -255,6 +255,8 @@ export function rotateCharacters(ascii: string, angleDeg: number, centerX?: numb
  *   illuminatedFraction of disc cells by raw incidence (n·s) to force a sliver.
  */
 export function renderMoon(state: MoonState, _options: RenderOptions = {}): string {
+  const options = _options ?? {};
+  const showHorizon = options.showHorizon !== false;
   // Find the best matching pre-rendered moon
   const nearestMoon = findNearestMoonState(state);
   const asciiLines = nearestMoon.ascii.split("\n");
@@ -356,13 +358,13 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
   const composed = out.join("\n");
 
   // Apply rotation if parallactic angle is available
+  let finalArt = composed;
   if (state.position?.parallacticAngle !== undefined) {
     // Use the full moon texture to determine the center of rotation,
     // so the moon doesn't "wobble" when it's a crescent.
     // We use nearestMoon.ascii which is the full texture.
-    const rotationCenter = asciiMoonDim(nearestMoon.ascii);
-    
-    return rotateCharacters(
+    const rotationCenter = dim;
+    finalArt = rotateCharacters(
       composed, 
       state.position.parallacticAngle + BASE_ANGLE_OFFSET,
       rotationCenter.centerX,
@@ -370,5 +372,51 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     );
   }
 
-  return composed;
+  return showHorizon ? overlayHorizon(finalArt, state, dim) : finalArt;
+}
+
+function overlayHorizon(art: string, state: MoonState, moonDim: MoonAsciiDimensions): string {
+  const pos = state.position;
+  if (!pos) return art;
+  if (state.size.angularDiameterDeg <= 0) return art;
+
+  const altitude = pos.altitude ?? 0;
+  const radiusDeg = state.size.angularDiameterDeg / 2;
+  const topAlt = altitude + radiusDeg;
+  const bottomAlt = altitude - radiusDeg;
+
+  // Fully above horizon
+  if (bottomAlt >= 0) {
+    return art;
+  }
+
+  const lines = art.split("\n");
+  const degreesPerChar = state.size.angularDiameterDeg / Math.max(1, moonDim.height);
+  let horizonRow = moonDim.centerY + altitude / degreesPerChar;
+  horizonRow = Math.round(clamp(horizonRow, 0, FRAME_H - 1));
+
+  let label: string;
+  if (topAlt <= 0) {
+    const below = Math.abs(altitude).toFixed(1).replace(/\.0$/, "");
+    label = `${below}-deg-below-horizon`;
+  } else {
+    label = "horizon";
+  }
+
+  lines[horizonRow] = makeHorizonLine(label);
+  return lines.join("\n");
+}
+
+function makeHorizonLine(label: string) {
+  const normalized = label.trim().replace(/\s+/g, '-');
+  let content = `--${normalized}--`;
+  if (content.length > FRAME_W) {
+    content = content.slice(0, FRAME_W);
+  }
+  if (content.length === FRAME_W) return content;
+
+  const remaining = FRAME_W - content.length;
+  const left = Math.floor(remaining / 2);
+  const right = remaining - left;
+  return "-".repeat(left) + content + "-".repeat(right);
 }
