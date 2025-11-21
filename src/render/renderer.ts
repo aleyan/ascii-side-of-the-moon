@@ -255,6 +255,8 @@ export function rotateCharacters(ascii: string, angleDeg: number, centerX?: numb
  *   illuminatedFraction of disc cells by raw incidence (n·s) to force a sliver.
  */
 export function renderMoon(state: MoonState, _options: RenderOptions = {}): string {
+  const options = _options ?? {};
+  const showHorizon = options.showHorizon !== false;
   // Find the best matching pre-rendered moon
   const nearestMoon = findNearestMoonState(state);
   const asciiLines = nearestMoon.ascii.split("\n");
@@ -370,7 +372,7 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     );
   }
 
-  return overlayHorizon(finalArt, state, dim);
+  return showHorizon ? overlayHorizon(finalArt, state, dim) : finalArt;
 }
 
 function overlayHorizon(art: string, state: MoonState, moonDim: MoonAsciiDimensions): string {

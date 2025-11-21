@@ -317,5 +317,14 @@ describe("renderMoon()", () => {
       const frame = renderMoon(state);
       expect(frame).toContain("deg-below-horizon");
     });
+
+    it("allows disabling the horizon overlay via render options", () => {
+      const state = mkState({
+        position: { ...basePosition, altitude: -5 }
+      });
+      const frame = renderMoon(state, { showHorizon: false });
+      expect(frame).not.toContain("deg-below-horizon");
+      expect(frame).not.toContain("horizon");
+    });
   });
 });

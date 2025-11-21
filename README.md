@@ -21,10 +21,14 @@ npx ascii-side-of-the-moon 2025-09-19
 npx ascii-side-of-the-moon "2025-09-19 21:30"
 
 # Provide an observer location (latitude/longitude in degrees, optional elevation in meters)
+# (Latitude and longitude are optional, but both must be supplied together;
+#  elevation is ignored unless lat/lon are provided.)
 npx ascii-side-of-the-moon 2025-09-19T21:30 --lat 37.7749 --lon -122.4194 --elevation 25
 ```
 
 The CLI will display the ASCII moon art along with information about the moon's phase, illumination percentage, distance, and angular diameter.
+When an observer location is supplied, the renderer also knows the altitude/azimuth
+and can draw the horizon line to show whether the moon is above or below your local horizon.
 
 ## Example
 
@@ -48,11 +52,16 @@ console.log(moonAscii);
 
 ## API Reference
 
-### `getMoonState(date: Date): MoonState`
+### `getMoonState(date: Date, observer?: ObserverLocation): MoonState`
 Returns detailed moon information including phase, size, and libration data.
+If you pass an `observer` (latitude/longitude in degrees, optional elevation in meters),
+the returned `MoonState` also contains topocentric position (altitude, azimuth, parallactic angle);
+this enables horizon-aware rendering and correct rotation for your sky.
 
 ### `renderMoon(moonState: MoonState, options?: RenderOptions): string`
 Renders the moon as ASCII art. Returns a 29×60 character string.
+`RenderOptions` now includes `showHorizon` (default `true`): set it to `false`
+if you want to suppress the horizon overlay even when altitude data is available.
 
 ### `getMoonPhase(moonState: MoonState): string`
 Returns the English name of the moon phase (e.g., "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent").
