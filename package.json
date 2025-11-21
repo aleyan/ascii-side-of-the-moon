@@ -31,6 +31,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
     "render:demo": "tsx scripts/demo-render.ts",
     "render:demo_animate": "tsx scripts/demo-animate.ts",
+    "render:dttmll": "tsx src/cli.ts",
     "export:moon-data": "tsx scripts/export-moon-data.ts",
     "prepack": "pnpm build",
     "postversion": "git push && git push --tags"

@@ -16,7 +16,7 @@ export const FRAME_H = 29; // characters
  * Base angle offset for rotation.
  * This is a manual tweak to align the rotation with public well-known photos of the moon.
  */
-export const BASE_ANGLE_OFFSET = 0;
+export const BASE_ANGLE_OFFSET = 90;
 
 /**
  * Calculate dimensions and center point of ASCII moon art by finding non-space boundaries.
