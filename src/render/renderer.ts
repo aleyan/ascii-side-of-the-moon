@@ -134,7 +134,7 @@ export function phaseSunVector(
   
   // Scale by phase angle: at full (0°) sun is behind viewer (sz=1),
   // at new (180°) sun is in front (sz=-1), at quarter (90°) sun is to the side
-  let sx = sunDirX * Math.sin(a);
+  const sx = sunDirX * Math.sin(a);
   let sy = sunDirY * Math.sin(a);
   let sz = Math.cos(a);
   
