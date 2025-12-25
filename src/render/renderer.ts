@@ -13,10 +13,17 @@ export const FRAME_W = 60; // characters
 export const FRAME_H = 29; // characters
 
 /**
- * Base angle offset for rotation.
- * This is a manual tweak to align the rotation with public well-known photos of the moon.
+ * Texture orientation offset in degrees.
+ * 
+ * This compensates for the baseline orientation of the pre-rendered moon textures.
+ * The moon textures were generated with a specific orientation that may not align
+ * with celestial north. This offset rotates the texture to align with the standard
+ * astronomical orientation (celestial north up) before applying the parallactic
+ * angle transformation.
+ * 
+ * Value determined empirically by comparing rendered output with actual moon photos.
  */
-export const BASE_ANGLE_OFFSET = -45;
+export const TEXTURE_ORIENTATION_OFFSET = 0;
 
 /**
  * Calculate dimensions and center point of ASCII moon art by finding non-space boundaries.
@@ -79,24 +86,41 @@ function rad(d: number): number {
 }
 
 /** 
- * Calculate sun vector in camera plane based on phase angle, waxing/waning state, and libration.
+ * Calculate sun vector in the standard celestial reference frame.
+ * 
+ * Coordinate system (standard astronomical orientation):
+ * - +X points to observer's RIGHT (celestial west when facing south in NH)
+ * - +Y points DOWN (screen coordinates, toward celestial south)
+ * - +Z points toward observer
+ * 
+ * The sun direction determines which part of the moon is illuminated.
+ * This is calculated in the celestial frame (north up, east left) and the
+ * result is later rotated along with the texture to the observer's frame.
+ * 
  * @param phaseAngleDeg - Phase angle in degrees (0° = full, 180° = new)
- * @param isWaxing - If true, bright limb is on right; if false, on left
- * @param elatDeg - Libration in latitude (degrees). Positive tilts terminator up-right.
- * @returns Normalized sun vector {sx, sy, sz} in camera space
+ * @param isWaxing - If true, sun is west of moon (right side lit); if false, east (left side lit)
+ * @param elatDeg - Libration in latitude (degrees). Tilts the terminator.
+ * @returns Normalized sun vector {sx, sy, sz} in celestial frame
  */
-export function phaseSunVector(phaseAngleDeg: number, isWaxing?: boolean, elatDeg: number = 0) {
+export function phaseSunVector(
+  phaseAngleDeg: number,
+  isWaxing?: boolean,
+  elatDeg: number = 0
+) {
   const a = rad(phaseAngleDeg);
   const elat = rad(elatDeg);
   
-  // Base vector in xz-plane (α=0 full, α=180 new)
+  // Sun direction in celestial frame (north up)
+  // - Waxing: sun is west of moon → illumination on the right (sx > 0)
+  // - Waning: sun is east of moon → illumination on the left (sx < 0)
   const sign = isWaxing ? 1 : -1;
-  const sx = sign * Math.sin(a);
-  let sy = 0;
-  let sz = Math.cos(a);
   
-  // Rotate around x-axis by latitude libration
-  // This tilts the terminator line by moving some of sz into sy
+  let sx = sign * Math.sin(a);  // Left-right component
+  let sy = 0;                    // Initially no vertical tilt
+  let sz = Math.cos(a);          // Toward/away from observer
+  
+  // Apply latitude libration (tilts the terminator)
+  // Rotates the sun vector around the x-axis
   const sy1 = -sz * Math.sin(elat);
   const sz1 =  sz * Math.cos(elat);
   sy = sy1;
@@ -249,14 +273,24 @@ export function rotateCharacters(ascii: string, angleDeg: number, centerX?: numb
 
 /**
  * Render a 60×29 moon using pre-rendered ASCII art.
- * - Uses nearest pre-rendered moon for distance and libration
- * - Applies phase masking via Lambertian lighting
- * - Fallback: if nothing lights up (ultra-thin crescent), select the top
- *   illuminatedFraction of disc cells by raw incidence (n·s) to force a sliver.
+ * 
+ * Algorithm:
+ * 1. Select the nearest pre-rendered moon texture (based on distance and libration)
+ * 2. Calculate sun direction in CELESTIAL frame (standard north-up orientation)
+ * 3. Apply Lambertian phase lighting to create illumination mask (in celestial frame)
+ * 4. Combine texture with phase mask (both in celestial frame)
+ * 5. Rotate the COMBINED result by parallactic angle to match observer's view
+ * 6. Optionally overlay horizon line
+ * 
+ * Key insight: The phase illumination is a property of the moon itself (which physical
+ * areas are lit by the sun). When we rotate the moon's appearance for the observer,
+ * the illuminated areas rotate WITH the texture because they're physically attached
+ * to the lunar surface.
  */
 export function renderMoon(state: MoonState, _options: RenderOptions = {}): string {
   const options = _options ?? {};
   const showHorizon = options.showHorizon !== false;
+  
   // Find the best matching pre-rendered moon
   const nearestMoon = findNearestMoonState(state);
   const asciiLines = nearestMoon.ascii.split("\n");
@@ -264,7 +298,8 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
   // Calculate actual moon dimensions from the ASCII art
   const dim = asciiMoonDim(nearestMoon.ascii);
   
-  // Sun vector for the given state
+  // Sun vector in CELESTIAL frame (north up, standard orientation)
+  // This determines which part of the moon is illuminated
   const { sx, sy, sz } = phaseSunVector(
     state.phase.phaseAngleDeg,
     state.phase.isWaxing,
@@ -340,7 +375,7 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     }
   }
 
-  // Second pass: compose the ASCII frame (unrotated)
+  // Compose the ASCII frame in CELESTIAL orientation (texture + phase mask)
   const out: string[] = [];
   for (let iy = 0; iy < FRAME_H; iy++) {
     let row = "";
@@ -355,24 +390,43 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
     out.push(row);
   }
 
-  const composed = out.join("\n");
+  let composed = out.join("\n");
 
   // Apply rotation if parallactic angle is available
-  let finalArt = composed;
+  // This rotates the COMBINED texture+phase to match the observer's view
+  //
+  // The parallactic angle (q) is the angle FROM zenith TO celestial north, measured eastward.
+  // - If q > 0: celestial north is EAST of zenith
+  // - If q < 0: celestial north is WEST of zenith
+  //
+  // The composed image has celestial north "up" (standard astronomical orientation).
+  // To display with zenith "up" (what the observer sees), we need to:
+  // - Rotate so that the zenith direction comes to point "up" on screen
+  // - Zenith is at angle -q from celestial north (since q is from zenith TO north)
+  // - To bring the direction at angle -q to point up, we rotate by -(-q) = q clockwise? No...
+  //
+  // Actually: if celestial north is at angle q from zenith (going eastward), then
+  // zenith is at angle -q from north (or 360-q going eastward). In screen coordinates
+  // where clockwise is positive, to rotate the image so zenith points up instead of north:
+  // - We rotate COUNTER-clockwise by q (or clockwise by -q)
+  //
+  // This is because: rotating counter-clockwise by q means the new "up" direction
+  // was previously at angle q from old "up" (which was north). And zenith is at
+  // angle q counter-clockwise from north (since parallactic angle is measured eastward,
+  // which is counter-clockwise when looking at the sky).
   if (state.position?.parallacticAngle !== undefined) {
-    // Use the full moon texture to determine the center of rotation,
-    // so the moon doesn't "wobble" when it's a crescent.
-    // We use nearestMoon.ascii which is the full texture.
-    const rotationCenter = dim;
-    finalArt = rotateCharacters(
-      composed, 
-      state.position.parallacticAngle + BASE_ANGLE_OFFSET,
-      rotationCenter.centerX,
-      rotationCenter.centerY
-    );
+    const totalRotation = -state.position.parallacticAngle + TEXTURE_ORIENTATION_OFFSET;
+    if (Math.abs(totalRotation) > 0.1) {
+      composed = rotateCharacters(
+        composed,
+        totalRotation,
+        dim.centerX,
+        dim.centerY
+      );
+    }
   }
 
-  return showHorizon ? overlayHorizon(finalArt, state, dim) : finalArt;
+  return showHorizon ? overlayHorizon(composed, state, dim) : composed;
 }
 
 function overlayHorizon(art: string, state: MoonState, moonDim: MoonAsciiDimensions): string {
