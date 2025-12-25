@@ -115,7 +115,7 @@ export function phaseSunVector(
   // - Waning: sun is east of moon → illumination on the left (sx < 0)
   const sign = isWaxing ? 1 : -1;
   
-  let sx = sign * Math.sin(a);  // Left-right component
+  const sx = sign * Math.sin(a);  // Left-right component
   let sy = 0;                    // Initially no vertical tilt
   let sz = Math.cos(a);          // Toward/away from observer
   
