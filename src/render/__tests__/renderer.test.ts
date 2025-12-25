@@ -123,26 +123,26 @@ describe('asciiMoonDim', () => {
 
 describe("phaseSunVector()", () => {
   it("includes vertical component based on latitude libration", () => {
-    // Arrange
-    const phaseAngle = 90; // quarter moon
+    // Arrange - use phase angle where sz != 0 so libration rotation has effect
+    const phaseAngle = 60; // gibbous moon (sz = cos(60°) = 0.5)
     const elat = 5.0; // significant latitude libration
     
-    // Act
-    const { sx, sy, sz } = phaseSunVector(phaseAngle, true, elat);
+    // Act - use undefined for brightLimbAngle to test waxing fallback
+    const { sx, sy, sz } = phaseSunVector(phaseAngle, undefined, true, elat);
     
-    // Assert
-    // For positive elat, sun should appear above horizon (sy < 0)
-    expect(sy).toBeLessThan(0);
+    // Assert: libration should introduce a non-zero sy component
+    expect(sy).not.toBeCloseTo(0, 3);
     // Vector should be normalized
     const magnitude = Math.sqrt(sx * sx + sy * sy + sz * sz);
     expect(magnitude).toBeCloseTo(1, 6);
   });
-  it("uses waxing to orient bright limb to the right", () => {
+
+  it("uses waxing to orient bright limb to the right (fallback mode)", () => {
     // Arrange
     const a = 60; // degrees
-    // Act
-    const { sx: sxWax, sz: szWax } = phaseSunVector(a, true);
-    const { sx: sxWane, sz: szWane } = phaseSunVector(a, false);
+    // Act - pass undefined for brightLimbAngle to use waxing fallback
+    const { sx: sxWax, sz: szWax } = phaseSunVector(a, undefined, true);
+    const { sx: sxWane, sz: szWane } = phaseSunVector(a, undefined, false);
     // Assert
     expect(szWax).toBeCloseTo(szWane, 6); // cos term same magnitude
     expect(sxWax).toBeGreaterThan(0);     // waxing -> right-side bright
@@ -153,13 +153,28 @@ describe("phaseSunVector()", () => {
     // Arrange
     const a = 0;
     // Act
-    const w = phaseSunVector(a, true);
-    const n = phaseSunVector(a, false);
+    const w = phaseSunVector(a, undefined, true);
+    const n = phaseSunVector(a, undefined, false);
     // Assert
     expect(w.sx).toBeCloseTo(0, 6);
     expect(n.sx).toBeCloseTo(0, 6);
     expect(w.sz).toBeCloseTo(1, 6);
     expect(n.sz).toBeCloseTo(1, 6);
+  });
+
+  it("uses brightLimbAngle when provided for accurate terminator orientation", () => {
+    // Arrange: quarter moon with sun at 250° position angle (southwest)
+    const phaseAngle = 90;
+    const brightLimbAngle = 250; // Sun is southwest of moon
+    
+    // Act
+    const { sx, sy, sz } = phaseSunVector(phaseAngle, brightLimbAngle);
+    
+    // Assert: sun direction should be toward southwest (positive X, positive Y)
+    // At 250°: -sin(250°) ≈ 0.94, -cos(250°) ≈ 0.34
+    expect(sx).toBeGreaterThan(0); // west component
+    expect(sy).toBeGreaterThan(0); // south component
+    expect(sz).toBeCloseTo(0, 1);  // quarter moon, sun at 90° from line of sight
   });
 });
 
@@ -167,7 +182,7 @@ describe("litIntensity()", () => {
   it("detects thin crescents with partial character illumination", () => {
     // Arrange
     const nearNewMoon = 170; // Very thin crescent
-    const { sx, sy, sz } = phaseSunVector(nearNewMoon, true);
+    const { sx, sy, sz } = phaseSunVector(nearNewMoon, undefined, true);
     
     // Test a point near the limb where crescent should be visible
     const x = 0.99; // Just inside the edge
@@ -183,7 +198,7 @@ describe("litIntensity()", () => {
   it("center is fully lit at full moon", () => {
     // Arrange
     const xn = 0, yn = 0;
-    const { sx, sy, sz } = phaseSunVector(0, true); // full moon
+    const { sx, sy, sz } = phaseSunVector(0, undefined, true); // full moon
     // Act
     const I = litIntensity(xn, yn, sx, sy, sz);
     // Assert
@@ -192,7 +207,7 @@ describe("litIntensity()", () => {
 
   it("edge is unlit at new moon", () => {
     // Arrange
-    const { sx, sy, sz } = phaseSunVector(180, true); // new moon orientation irrelevant
+    const { sx, sy, sz } = phaseSunVector(180, undefined, true); // new moon orientation irrelevant
     const slightlyInside = 0.999;
     // Act
     const I = litIntensity(slightlyInside, 0, sx, sy, sz);

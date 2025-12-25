@@ -15,6 +15,39 @@ export function normalizeDegrees(angle: number) {
   return (angle % 360 + 360) % 360;
 }
 
+/**
+ * Calculate the position angle of the bright limb (direction from moon to sun).
+ * This is the angle from celestial north to the sun's direction, measured eastward.
+ * 
+ * @param date - The date/time of observation
+ * @returns Position angle in degrees (0° = north, 90° = east, 180° = south, 270° = west)
+ */
+export function calculateBrightLimbAngle(date: Date): number {
+  // Get geocentric equatorial coordinates of sun and moon using GeoVector
+  const sunVec = Astronomy.GeoVector(Astronomy.Body.Sun, date, true);
+  const moonVec = Astronomy.GeoVector(Astronomy.Body.Moon, date, true);
+  
+  // Convert to equatorial coordinates
+  const sunEq = Astronomy.EquatorFromVector(sunVec);
+  const moonEq = Astronomy.EquatorFromVector(moonVec);
+  
+  // Calculate position angle from moon to sun using spherical trigonometry
+  // PA = atan2(sin(Δα), cos(δ_moon)·tan(δ_sun) - sin(δ_moon)·cos(Δα))
+  // where Δα = α_sun - α_moon (in RA)
+  const dRA_hours = sunEq.ra - moonEq.ra;
+  const dRA_rad = dRA_hours * 15 * Astronomy.DEG2RAD; // convert hours to radians
+  const moonDecRad = moonEq.dec * Astronomy.DEG2RAD;
+  const sunDecRad = sunEq.dec * Astronomy.DEG2RAD;
+  
+  const sinDRA = Math.sin(dRA_rad);
+  const cosDRA = Math.cos(dRA_rad);
+  const numerator = sinDRA;
+  const denominator = Math.cos(moonDecRad) * Math.tan(sunDecRad) - Math.sin(moonDecRad) * cosDRA;
+  
+  const positionAngle = Math.atan2(numerator, denominator) * Astronomy.RAD2DEG;
+  return normalizeDegrees(positionAngle);
+}
+
 export function normalizeHourAngle(hours: number) {
   let h = (hours % 24 + 24) % 24;
   if (h > 12) h -= 24;
@@ -58,7 +91,8 @@ export function getMoonState(date: Date, observerLocation?: ObserverLocation): M
     phase: {
       phaseAngleDeg: illum.phase_angle,
       illuminatedFraction: illum.phase_fraction,
-      isWaxing: isWaxingAt(date)
+      isWaxing: isWaxingAt(date),
+      brightLimbAngle: calculateBrightLimbAngle(date)
     },
     size: {
       distanceKm: lib.dist_km,

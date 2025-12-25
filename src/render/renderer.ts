@@ -98,31 +98,50 @@ function rad(d: number): number {
  * result is later rotated along with the texture to the observer's frame.
  * 
  * @param phaseAngleDeg - Phase angle in degrees (0° = full, 180° = new)
- * @param isWaxing - If true, sun is west of moon (right side lit); if false, east (left side lit)
+ * @param brightLimbAngleDeg - Position angle of bright limb in degrees (0° = north, 90° = east, etc.)
+ *                              If undefined, falls back to simplified waxing/waning assumption.
+ * @param isWaxing - Fallback: if true, sun is west (270°); if false, east (90°). Used when brightLimbAngle unavailable.
  * @param elatDeg - Libration in latitude (degrees). Tilts the terminator.
  * @returns Normalized sun vector {sx, sy, sz} in celestial frame
  */
 export function phaseSunVector(
   phaseAngleDeg: number,
+  brightLimbAngleDeg?: number,
   isWaxing?: boolean,
   elatDeg: number = 0
 ) {
   const a = rad(phaseAngleDeg);
   const elat = rad(elatDeg);
   
-  // Sun direction in celestial frame (north up)
-  // - Waxing: sun is west of moon → illumination on the right (sx > 0)
-  // - Waning: sun is east of moon → illumination on the left (sx < 0)
-  const sign = isWaxing ? 1 : -1;
+  // Determine the angle from which the sun illuminates the moon.
+  // If brightLimbAngle is provided, use it directly. Otherwise, fall back to the
+  // simplified assumption that waxing = west (270°), waning = east (90°).
+  let sunAngle: number;
+  if (brightLimbAngleDeg !== undefined) {
+    sunAngle = rad(brightLimbAngleDeg);
+  } else {
+    // Legacy fallback: waxing = 270° (west), waning = 90° (east)
+    sunAngle = isWaxing ? rad(270) : rad(90);
+  }
   
-  const sx = sign * Math.sin(a);  // Left-right component
-  let sy = 0;                    // Initially no vertical tilt
-  let sz = Math.cos(a);          // Toward/away from observer
+  // Convert position angle to sun direction in screen coordinates.
+  // Position angle convention: 0° = north (up/-Y), 90° = east (left/-X), 
+  //                            180° = south (down/+Y), 270° = west (right/+X)
+  // In screen coords: +X = right, +Y = down
+  // Direction to sun: dx = -sin(PA), dy = -cos(PA)
+  const sunDirX = -Math.sin(sunAngle);  // -sin because east is -X
+  const sunDirY = -Math.cos(sunAngle);  // -cos because north is -Y
   
-  // Apply latitude libration (tilts the terminator)
+  // Scale by phase angle: at full (0°) sun is behind viewer (sz=1),
+  // at new (180°) sun is in front (sz=-1), at quarter (90°) sun is to the side
+  let sx = sunDirX * Math.sin(a);
+  let sy = sunDirY * Math.sin(a);
+  let sz = Math.cos(a);
+  
+  // Apply latitude libration (tilts the terminator slightly)
   // Rotates the sun vector around the x-axis
-  const sy1 = -sz * Math.sin(elat);
-  const sz1 =  sz * Math.cos(elat);
+  const sy1 = sy * Math.cos(elat) - sz * Math.sin(elat);
+  const sz1 = sy * Math.sin(elat) + sz * Math.cos(elat);
   sy = sy1;
   sz = sz1;
   
@@ -299,9 +318,12 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
   const dim = asciiMoonDim(nearestMoon.ascii);
   
   // Sun vector in CELESTIAL frame (north up, standard orientation)
-  // This determines which part of the moon is illuminated
+  // This determines which part of the moon is illuminated.
+  // The brightLimbAngle gives the exact direction from moon to sun,
+  // producing accurate terminator orientation for any date.
   const { sx, sy, sz } = phaseSunVector(
     state.phase.phaseAngleDeg,
+    state.phase.brightLimbAngle,
     state.phase.isWaxing,
     state.libration.elat
   );

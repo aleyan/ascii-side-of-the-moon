@@ -12,6 +12,13 @@ export interface MoonPhase {
   illuminatedFraction: number;
   /** If true, bright limb on the right (waxing). If false, bright limb on the left (waning). */
   isWaxing?: boolean;
+  /** 
+   * Position angle of the bright limb in degrees.
+   * Measured from celestial north, eastward (counterclockwise when looking at the sky).
+   * 0° = north, 90° = east, 180° = south, 270° = west.
+   * This determines the orientation of the terminator line.
+   */
+  brightLimbAngle?: number;
 }
 
 export interface MoonSize {
