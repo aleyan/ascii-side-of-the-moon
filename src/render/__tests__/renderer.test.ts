@@ -327,26 +327,21 @@ describe("renderMoon()", () => {
       return { x: sumX / count, y: sumY / count };
     }
 
-    it("applies no rotation when parallactic angle is zero", () => {
+    it("applies only texture offset when parallactic angle is zero", () => {
       // Arrange: waxing crescent with parallactic angle = 0
-      const stateNoRotation = mkState({
+      // With TEXTURE_ORIENTATION_OFFSET, even q=0 results in some rotation
+      const stateZeroAngle = mkState({
         phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
         position: { altitude: 45, azimuth: 180, parallacticAngle: 0 }
       });
-      const stateNoPosition = mkState({
-        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true }
-      });
 
       // Act
-      const frameWithZeroAngle = renderMoon(stateNoRotation);
-      const frameNoPosition = renderMoon(stateNoPosition);
-      const centroidZero = findLitCentroid(frameWithZeroAngle);
-      const centroidNone = findLitCentroid(frameNoPosition);
+      const frame = renderMoon(stateZeroAngle);
+      const centroid = findLitCentroid(frame);
 
-      // Assert: both should have similar centroids (crescent on right for waxing)
-      expect(centroidZero.x).toBeCloseTo(centroidNone.x, 0);
-      expect(centroidZero.y).toBeCloseTo(centroidNone.y, 0);
-      expect(centroidZero.x).toBeGreaterThan(0); // waxing = right side lit
+      // Assert: crescent should still be predominantly on the right for waxing
+      // (even with texture offset rotation, waxing crescent remains on right side)
+      expect(centroid.x).toBeGreaterThan(0); // waxing = right side lit
     });
 
     it("rotates crescent position for positive parallactic angle", () => {

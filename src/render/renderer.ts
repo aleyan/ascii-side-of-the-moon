@@ -23,7 +23,7 @@ export const FRAME_H = 29; // characters
  * 
  * Value determined empirically by comparing rendered output with actual moon photos.
  */
-export const TEXTURE_ORIENTATION_OFFSET = 0;
+export const TEXTURE_ORIENTATION_OFFSET = -45;
 
 /**
  * Calculate dimensions and center point of ASCII moon art by finding non-space boundaries.
