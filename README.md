@@ -71,7 +71,23 @@ Inside of repository for `ascii-side-of-the-moon`.
 
 Render a single date:
 ```sh
+# Show moon for current date
+pnpm run render:demo
+
+# Show moon for a specific date
 pnpm run render:demo 2025-01-01
+
+# Include a specific UTC time
+pnpm run render:demo 2025-01-01 21:30
+
+# Include observer location (enables parallactic rotation and horizon display)
+pnpm run render:demo 2025-01-01 21:30 --lat 40.7128 --lon -74.0060
+
+# With elevation (meters)
+pnpm run render:demo 2025-01-01 21:30 --lat 37.7749 --lon -122.4194 --elevation 25
+
+# Just observer location (uses current date/time)
+pnpm run render:demo --lat 40.7128 --lon -74.0060
 ```
 
 Render an animation:
