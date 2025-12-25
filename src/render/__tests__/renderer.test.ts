@@ -287,6 +287,127 @@ describe("renderMoon()", () => {
     expect(lastCols(negFrame, N)).toBeLessThan(lastCols(renderMoon(base), N));
   });
 
+  describe("parallactic angle rotation", () => {
+    /**
+     * Helper to find the centroid of lit pixels in a rendered frame.
+     * Returns normalized coordinates where (0,0) is center, positive x is right, positive y is down.
+     */
+    function findLitCentroid(frame: string): { x: number; y: number } {
+      const lines = frame.split("\n");
+      let sumX = 0, sumY = 0, count = 0;
+      const midX = FRAME_W / 2;
+      const midY = FRAME_H / 2;
+      
+      for (let y = 0; y < lines.length; y++) {
+        for (let x = 0; x < lines[y].length; x++) {
+          if (lines[y][x] !== " ") {
+            sumX += (x - midX);
+            sumY += (y - midY);
+            count++;
+          }
+        }
+      }
+      
+      if (count === 0) return { x: 0, y: 0 };
+      return { x: sumX / count, y: sumY / count };
+    }
+
+    it("applies no rotation when parallactic angle is zero", () => {
+      // Arrange: waxing crescent with parallactic angle = 0
+      const stateNoRotation = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: 0 }
+      });
+      const stateNoPosition = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true }
+      });
+
+      // Act
+      const frameWithZeroAngle = renderMoon(stateNoRotation);
+      const frameNoPosition = renderMoon(stateNoPosition);
+      const centroidZero = findLitCentroid(frameWithZeroAngle);
+      const centroidNone = findLitCentroid(frameNoPosition);
+
+      // Assert: both should have similar centroids (crescent on right for waxing)
+      expect(centroidZero.x).toBeCloseTo(centroidNone.x, 0);
+      expect(centroidZero.y).toBeCloseTo(centroidNone.y, 0);
+      expect(centroidZero.x).toBeGreaterThan(0); // waxing = right side lit
+    });
+
+    it("rotates crescent position for positive parallactic angle", () => {
+      // Arrange: waxing crescent with positive parallactic angle (typical for Southern Hemisphere)
+      // Positive parallactic angle means celestial north is east of zenith.
+      // We rotate by -q, so positive q causes counter-clockwise rotation of coordinates,
+      // which moves the crescent clockwise (right → down).
+      const stateNoRotation = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: 0 }
+      });
+      const stateRotated = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: 90 }
+      });
+
+      // Act
+      const frameNoRotation = renderMoon(stateNoRotation);
+      const frameRotated = renderMoon(stateRotated);
+      const centroidNoRot = findLitCentroid(frameNoRotation);
+      const centroidRot = findLitCentroid(frameRotated);
+
+      // Assert: crescent moves from right toward bottom
+      expect(centroidNoRot.x).toBeGreaterThan(0); // starts on right
+      expect(centroidRot.y).toBeGreaterThan(centroidNoRot.y); // moves downward
+    });
+
+    it("rotates crescent position for negative parallactic angle", () => {
+      // Arrange: waxing crescent with negative parallactic angle (typical for rising moon in NH)
+      // Negative parallactic angle means celestial north is west of zenith.
+      // We rotate by -q, so negative q causes clockwise rotation of coordinates,
+      // which moves the crescent counter-clockwise (right → up).
+      const stateNoRotation = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: 0 }
+      });
+      const stateRotated = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: -90 }
+      });
+
+      // Act
+      const frameNoRotation = renderMoon(stateNoRotation);
+      const frameRotated = renderMoon(stateRotated);
+      const centroidNoRot = findLitCentroid(frameNoRotation);
+      const centroidRot = findLitCentroid(frameRotated);
+
+      // Assert: crescent moves from right toward top
+      expect(centroidNoRot.x).toBeGreaterThan(0); // starts on right
+      expect(centroidRot.y).toBeLessThan(centroidNoRot.y); // moves upward
+    });
+
+    it("rotates crescent by 180° for Southern Hemisphere-like parallactic angle", () => {
+      // Arrange: waxing crescent, parallactic angle of ~180° flips the moon orientation
+      const stateNoRotation = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: 0 }
+      });
+      const stateFlipped = mkState({
+        phase: { phaseAngleDeg: 120, illuminatedFraction: 0.3, isWaxing: true },
+        position: { altitude: 45, azimuth: 180, parallacticAngle: 180 }
+      });
+
+      // Act
+      const frameNoRotation = renderMoon(stateNoRotation);
+      const frameFlipped = renderMoon(stateFlipped);
+      const centroidNoRot = findLitCentroid(frameNoRotation);
+      const centroidFlipped = findLitCentroid(frameFlipped);
+
+      // Assert: with 180° parallactic angle (rotation by -180°),
+      // the crescent should flip from right to left
+      expect(centroidNoRot.x).toBeGreaterThan(0); // starts on right
+      expect(centroidFlipped.x).toBeLessThan(0); // flips to left
+    });
+  });
+
   describe("horizon overlay", () => {
     const basePosition = { azimuth: 0, parallacticAngle: 0 };
 

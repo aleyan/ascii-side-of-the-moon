@@ -392,28 +392,17 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
 
   let composed = out.join("\n");
 
-  // Apply rotation if parallactic angle is available
-  // This rotates the COMBINED texture+phase to match the observer's view
+  // Apply parallactic angle rotation to match the observer's view.
   //
-  // The parallactic angle (q) is the angle FROM zenith TO celestial north, measured eastward.
-  // - If q > 0: celestial north is EAST of zenith
-  // - If q < 0: celestial north is WEST of zenith
+  // The composed image is in the celestial frame with north "up". The observer sees
+  // the moon with zenith "up". The parallactic angle (q) measures the angular distance
+  // from zenith to celestial north, going eastward:
+  //   - q > 0: celestial north is east of zenith
+  //   - q < 0: celestial north is west of zenith
   //
-  // The composed image has celestial north "up" (standard astronomical orientation).
-  // To display with zenith "up" (what the observer sees), we need to:
-  // - Rotate so that the zenith direction comes to point "up" on screen
-  // - Zenith is at angle -q from celestial north (since q is from zenith TO north)
-  // - To bring the direction at angle -q to point up, we rotate by -(-q) = q clockwise? No...
-  //
-  // Actually: if celestial north is at angle q from zenith (going eastward), then
-  // zenith is at angle -q from north (or 360-q going eastward). In screen coordinates
-  // where clockwise is positive, to rotate the image so zenith points up instead of north:
-  // - We rotate COUNTER-clockwise by q (or clockwise by -q)
-  //
-  // This is because: rotating counter-clockwise by q means the new "up" direction
-  // was previously at angle q from old "up" (which was north). And zenith is at
-  // angle q counter-clockwise from north (since parallactic angle is measured eastward,
-  // which is counter-clockwise when looking at the sky).
+  // To transform from "north up" to "zenith up", we rotate counter-clockwise by q,
+  // which is equivalent to rotating clockwise by -q. The rotateCharacters function
+  // uses clockwise-positive convention, so we pass -q.
   if (state.position?.parallacticAngle !== undefined) {
     const totalRotation = -state.position.parallacticAngle + TEXTURE_ORIENTATION_OFFSET;
     if (Math.abs(totalRotation) > 0.1) {
