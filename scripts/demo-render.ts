@@ -1,9 +1,11 @@
 import { renderMoon } from "../src/render/renderer";
 import { getMoonState, getMoonPhase } from "../src/core/astronomy";
-import type { ObserverLocation } from "../src/core/types";
+import type { ObserverLocation, Frame } from "../src/core/types";
+
+const VALID_FRAMES: Frame[] = ["celestial_up", "celestial_down", "observer"];
 
 function printUsage() {
-  console.log(`Usage: pnpm run render:demo [date] [time] [--lat <degrees>] [--lon <degrees>] [--elevation <meters>]
+  console.log(`Usage: pnpm run render:demo [date] [time] [--lat <degrees>] [--lon <degrees>] [--elevation <meters>] [--frame <frame>]
 
 Arguments:
   date        Date in YYYY-MM-DD format (default: today)
@@ -11,6 +13,8 @@ Arguments:
   --lat       Observer latitude in degrees (-90 to 90)
   --lon       Observer longitude in degrees (-180 to 180)
   --elevation Observer elevation in meters (optional)
+  --frame     Reference frame: celestial_up, celestial_down, or observer
+              (default: observer if lat/lon provided, celestial_up otherwise)
 
 Examples:
   pnpm run render:demo
@@ -18,6 +22,7 @@ Examples:
   pnpm run render:demo 2025-01-01 21:30
   pnpm run render:demo 2025-01-01 21:30 --lat 40.7128 --lon -74.0060
   pnpm run render:demo --lat 37.7749 --lon -122.4194 --elevation 25
+  pnpm run render:demo 2025-01-01 --frame=celestial_down
 `);
 }
 
@@ -60,12 +65,13 @@ function fmtDate(d: Date) {
   return `${y}-${m}-${da} ${h}:${min} UTC`;
 }
 
-function parseArgs(args: string[]): { date: Date; observer?: ObserverLocation } {
+function parseArgs(args: string[]): { date: Date; observer?: ObserverLocation; frame?: Frame } {
   let dateStr: string | undefined;
   let timeStr: string | undefined;
   let latitude: number | undefined;
   let longitude: number | undefined;
   let elevation: number | undefined;
+  let frame: Frame | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -114,6 +120,15 @@ function parseArgs(args: string[]): { date: Date; observer?: ObserverLocation } 
             process.exit(1);
           }
           break;
+        case "frame": {
+          const value = getValue();
+          if (!VALID_FRAMES.includes(value as Frame)) {
+            console.error(`Invalid frame value: ${value}. Must be one of: ${VALID_FRAMES.join(", ")}`);
+            process.exit(1);
+          }
+          frame = value as Frame;
+          break;
+        }
         default:
           console.error(`Unknown flag: ${flag}`);
           process.exit(1);
@@ -146,10 +161,13 @@ function parseArgs(args: string[]): { date: Date; observer?: ObserverLocation } 
       ? { latitude, longitude, elevationMeters: elevation }
       : undefined;
 
-  return { date, observer };
+  // Apply default frame logic
+  const resolvedFrame: Frame = frame ?? (observer ? "observer" : "celestial_up");
+
+  return { date, observer, frame: resolvedFrame };
 }
 
-const { date, observer } = parseArgs(process.argv.slice(2));
+const { date, observer, frame } = parseArgs(process.argv.slice(2));
 const state = getMoonState(date, observer);
 
 let info =
@@ -159,7 +177,7 @@ let info =
   `waxing=${state.phase.isWaxing ? "yes" : "no"}  ` +
   `dist=${state.size.distanceKm.toFixed(0).padStart(6)} km\n` +
   `Libration: lat=${state.libration.elat.toFixed(1).padStart(5)}°  lon=${state.libration.elon.toFixed(1).padStart(5)}°\n` +
-  `Moon Phase: ${getMoonPhase(state)}`;
+  `Moon Phase: ${getMoonPhase(state)}  Frame: ${frame}`;
 
 if (observer) {
   const latDir = observer.latitude >= 0 ? "N" : "S";
@@ -174,4 +192,4 @@ if (observer) {
 }
 
 console.log(info);
-console.log(renderMoon(state, { lines: 20 }));
+console.log(renderMoon(state, { lines: 20, frame }));

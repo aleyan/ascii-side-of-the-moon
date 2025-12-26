@@ -1,4 +1,4 @@
-import type { MoonState, RenderOptions, MoonAsciiDimensions } from "../core/types";
+import type { MoonState, RenderOptions, MoonAsciiDimensions, Frame } from "../core/types";
 import moonData from "./ascii.json";
 
 /** 
@@ -292,6 +292,21 @@ export function rotateCharacters(ascii: string, angleDeg: number, centerX?: numb
 }
 
 /**
+ * Determine the effective frame for rendering based on options and available data.
+ * 
+ * Priority:
+ * 1. If options.frame is explicitly set, use it
+ * 2. If position data is available (observer location was provided), default to 'observer'
+ * 3. Otherwise, default to 'celestial_up'
+ */
+function resolveFrame(state: MoonState, options: RenderOptions): Frame {
+  if (options.frame !== undefined) {
+    return options.frame;
+  }
+  return state.position !== undefined ? "observer" : "celestial_up";
+}
+
+/**
  * Render a 60×29 moon using pre-rendered ASCII art.
  * 
  * Algorithm:
@@ -299,8 +314,11 @@ export function rotateCharacters(ascii: string, angleDeg: number, centerX?: numb
  * 2. Calculate sun direction in CELESTIAL frame (standard north-up orientation)
  * 3. Apply Lambertian phase lighting to create illumination mask (in celestial frame)
  * 4. Combine texture with phase mask (both in celestial frame)
- * 5. Rotate the COMBINED result by parallactic angle to match observer's view
- * 6. Optionally overlay horizon line
+ * 5. Rotate the COMBINED result based on frame:
+ *    - celestial_up: no rotation (celestial north up)
+ *    - celestial_down: 180° rotation (celestial south up)
+ *    - observer: rotate by parallactic angle to match observer's view (zenith up)
+ * 6. Optionally overlay horizon line (only for observer frame)
  * 
  * Key insight: The phase illumination is a property of the moon itself (which physical
  * areas are lit by the sun). When we rotate the moon's appearance for the observer,
@@ -309,7 +327,9 @@ export function rotateCharacters(ascii: string, angleDeg: number, centerX?: numb
  */
 export function renderMoon(state: MoonState, _options: RenderOptions = {}): string {
   const options = _options ?? {};
-  const showHorizon = options.showHorizon !== false;
+  const frame = resolveFrame(state, options);
+  // Only show horizon for observer frame by default
+  const showHorizon = options.showHorizon ?? (frame === "observer");
   
   // Find the best matching pre-rendered moon
   const nearestMoon = findNearestMoonState(state);
@@ -428,30 +448,42 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
 
   let composed = out.join("\n");
 
-  // Apply parallactic angle rotation to match the observer's view.
+  // Apply rotation based on the selected frame:
   //
-  // The composed image is in the celestial frame with north "up". The observer sees
-  // the moon with zenith "up". The parallactic angle (q) measures the angular distance
-  // from zenith to celestial north, going eastward:
-  //   - q > 0: celestial north is east of zenith
-  //   - q < 0: celestial north is west of zenith
+  // celestial_up: No rotation. The composed image is already in the celestial frame
+  //               with north "up". This is the standard geocentric orientation.
   //
-  // To transform from "north up" to "zenith up", we rotate counter-clockwise by q,
-  // which is equivalent to rotating clockwise by -q. The rotateCharacters function
-  // uses clockwise-positive convention, so we pass -q.
+  // celestial_down: 180° rotation. Flips the image so celestial south is "up".
+  //                 Useful for observers in the southern hemisphere who may prefer
+  //                 this orientation, or for inverted telescope views.
+  //
+  // observer: Parallactic angle rotation to match the observer's view.
+  //           The composed image is in the celestial frame with north "up". The observer sees
+  //           the moon with zenith "up". The parallactic angle (q) measures the angular distance
+  //           from zenith to celestial north, going eastward:
+  //             - q > 0: celestial north is east of zenith
+  //             - q < 0: celestial north is west of zenith
+  //           To transform from "north up" to "zenith up", we rotate counter-clockwise by q,
+  //           which is equivalent to rotating clockwise by -q. The rotateCharacters function
+  //           uses clockwise-positive convention, so we pass -q.
   //
   // Note: TEXTURE_ORIENTATION_OFFSET was already applied to the texture before
-  // phase lighting, so we only apply the parallactic angle here.
-  if (state.position?.parallacticAngle !== undefined) {
-    const rotation = -state.position.parallacticAngle;
-    if (Math.abs(rotation) > 0.1) {
-      composed = rotateCharacters(
-        composed,
-        rotation,
-        dim.centerX,
-        dim.centerY
-      );
-    }
+  // phase lighting, so we only apply frame-specific rotation here.
+  let rotation = 0;
+  if (frame === "celestial_down") {
+    rotation = 180;
+  } else if (frame === "observer" && state.position?.parallacticAngle !== undefined) {
+    rotation = -state.position.parallacticAngle;
+  }
+  // celestial_up: rotation stays 0
+
+  if (Math.abs(rotation) > 0.1) {
+    composed = rotateCharacters(
+      composed,
+      rotation,
+      dim.centerX,
+      dim.centerY
+    );
   }
 
   return showHorizon ? overlayHorizon(composed, state, dim) : composed;
