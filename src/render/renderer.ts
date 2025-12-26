@@ -16,12 +16,13 @@ export const FRAME_H = 29; // characters
  * Texture orientation offset in degrees.
  * 
  * This compensates for the baseline orientation of the pre-rendered moon textures.
- * The moon textures were generated with a specific orientation that may not align
- * with celestial north. This offset rotates the texture to align with the standard
- * astronomical orientation (celestial north up) before applying the parallactic
- * angle transformation.
+ * The ASCII moon textures were generated with a specific orientation that may not
+ * align with celestial north. This offset rotates the texture to align with the
+ * standard astronomical orientation (celestial north up) BEFORE applying phase
+ * lighting. This ensures the phase illumination is applied correctly in the
+ * celestial reference frame, independent of how the textures were originally rendered.
  * 
- * Value determined empirically by comparing rendered output with actual moon photos.
+ * Value determined empirically by comparing rendered output with actual moon observations.
  */
 export const TEXTURE_ORIENTATION_OFFSET = -45;
 
@@ -312,10 +313,23 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
   
   // Find the best matching pre-rendered moon
   const nearestMoon = findNearestMoonState(state);
-  const asciiLines = nearestMoon.ascii.split("\n");
-
+  
   // Calculate actual moon dimensions from the ASCII art
   const dim = asciiMoonDim(nearestMoon.ascii);
+  
+  // Apply texture orientation offset BEFORE phase lighting.
+  // This rotates the ASCII texture to align with celestial north,
+  // so that phase illumination is applied correctly in the celestial frame.
+  let textureAscii = nearestMoon.ascii;
+  if (Math.abs(TEXTURE_ORIENTATION_OFFSET) > 0.1) {
+    textureAscii = rotateCharacters(
+      textureAscii,
+      TEXTURE_ORIENTATION_OFFSET,
+      dim.centerX,
+      dim.centerY
+    );
+  }
+  const asciiLines = textureAscii.split("\n");
   
   // Sun vector in CELESTIAL frame (north up, standard orientation)
   // This determines which part of the moon is illuminated.
@@ -425,12 +439,15 @@ export function renderMoon(state: MoonState, _options: RenderOptions = {}): stri
   // To transform from "north up" to "zenith up", we rotate counter-clockwise by q,
   // which is equivalent to rotating clockwise by -q. The rotateCharacters function
   // uses clockwise-positive convention, so we pass -q.
+  //
+  // Note: TEXTURE_ORIENTATION_OFFSET was already applied to the texture before
+  // phase lighting, so we only apply the parallactic angle here.
   if (state.position?.parallacticAngle !== undefined) {
-    const totalRotation = -state.position.parallacticAngle + TEXTURE_ORIENTATION_OFFSET;
-    if (Math.abs(totalRotation) > 0.1) {
+    const rotation = -state.position.parallacticAngle;
+    if (Math.abs(rotation) > 0.1) {
       composed = rotateCharacters(
         composed,
-        totalRotation,
+        rotation,
         dim.centerX,
         dim.centerY
       );
