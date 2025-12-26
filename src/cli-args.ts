@@ -1,4 +1,4 @@
-import type { ObserverLocation } from "./core/types";
+import type { ObserverLocation, Frame } from "./core/types";
 
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DATE_WITH_TIME_NO_TZ_REGEX = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}$/;
@@ -12,6 +12,7 @@ export interface CliParseOptions {
 export interface CliParseResult {
   date: Date;
   observer?: ObserverLocation;
+  frame?: Frame;
 }
 
 function normalizeDateInput(input: string): string {
@@ -76,6 +77,15 @@ function combineDateAndTime(datePart: string, timePart?: string): string {
   return `${datePart}T${timePart}`;
 }
 
+const VALID_FRAMES: Frame[] = ["celestial_up", "celestial_down", "observer"];
+
+function parseFrameOrThrow(value: string): Frame {
+  if (!VALID_FRAMES.includes(value as Frame)) {
+    throw new Error(`Invalid frame value: ${value}. Must be one of: ${VALID_FRAMES.join(", ")}.`);
+  }
+  return value as Frame;
+}
+
 export function parseCliArgs(args: string[], options: CliParseOptions = {}): CliParseResult {
   const nowProvider = options.now ?? (() => new Date());
   let datePart: string | undefined;
@@ -83,6 +93,7 @@ export function parseCliArgs(args: string[], options: CliParseOptions = {}): Cli
   let latitude: number | undefined;
   let longitude: number | undefined;
   let elevation: number | undefined;
+  let frame: Frame | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -110,6 +121,12 @@ export function parseCliArgs(args: string[], options: CliParseOptions = {}): Cli
         case "elevation": {
           const { value, nextIndex } = readFlagValue(args, i, inline);
           elevation = parseNumberOrThrow(value, "Elevation");
+          i = nextIndex;
+          break;
+        }
+        case "frame": {
+          const { value, nextIndex } = readFlagValue(args, i, inline);
+          frame = parseFrameOrThrow(value);
           i = nextIndex;
           break;
         }
@@ -146,9 +163,16 @@ export function parseCliArgs(args: string[], options: CliParseOptions = {}): Cli
       }
     : undefined;
 
+  // Apply default frame logic:
+  // - If frame is explicitly provided, use it
+  // - If lat/lon are provided but no frame, default to 'observer'
+  // - If lat/lon are NOT provided and no frame, default to 'celestial_up'
+  const resolvedFrame: Frame | undefined = frame ?? (observer ? "observer" : "celestial_up");
+
   return {
     date,
-    observer
+    observer,
+    frame: resolvedFrame
   };
 }
 

@@ -1,3 +1,11 @@
+/**
+ * Reference frame for viewing the moon.
+ * - celestial_up: Standard geocentric orientation with celestial north up
+ * - celestial_down: Inverted geocentric orientation with celestial south up
+ * - observer: Observer-relative orientation with zenith up, uses lat/lon to calculate parallactic angle
+ */
+export type Frame = "celestial_up" | "celestial_down" | "observer";
+
 export interface MoonLibration {
   /** Ecliptic longitude libration (degrees). */
   elon: number;
@@ -74,6 +82,14 @@ export interface RenderOptions {
   invert?: boolean;
   /** If true, prefer legacy block elements instead of twelfth-circle glyphs. (Unused now.) */
   forceLegacySymbols?: boolean;
-  /** Controls whether the renderer draws the horizon overlay (default true). */
+  /** Controls whether the renderer draws the horizon overlay (default true for observer frame). */
   showHorizon?: boolean;
+  /** 
+   * Reference frame for viewing the moon.
+   * - celestial_up: Standard geocentric orientation with celestial north up (no parallactic rotation)
+   * - celestial_down: Inverted geocentric orientation with celestial south up (180° rotation)
+   * - observer: Observer-relative orientation with zenith up (uses parallactic angle from MoonState.position)
+   * Defaults to 'observer' if MoonState.position is available, 'celestial_up' otherwise.
+   */
+  frame?: Frame;
 }

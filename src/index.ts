@@ -8,5 +8,6 @@ export type {
   MoonSize,
   MoonPosition,
   ObserverLocation,
-  RenderOptions
+  RenderOptions,
+  Frame
 } from "./core/types";

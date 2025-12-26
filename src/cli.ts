@@ -7,7 +7,7 @@ export function main(argv: string[] = process.argv.slice(2)) {
   try {
     const args = parseCliArgs(argv);
     const moonState = getMoonState(args.date, args.observer);
-    const asciiMoon = renderMoon(moonState);
+    const asciiMoon = renderMoon(moonState, { frame: args.frame });
     console.log(asciiMoon);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

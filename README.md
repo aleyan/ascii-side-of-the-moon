@@ -24,11 +24,22 @@ npx ascii-side-of-the-moon "2025-09-19 21:30"
 # (Latitude and longitude are optional, but both must be supplied together;
 #  elevation is ignored unless lat/lon are provided.)
 npx ascii-side-of-the-moon 2025-09-19T21:30 --lat 37.7749 --lon -122.4194 --elevation 25
+
+# Choose a reference frame for the moon orientation
+npx ascii-side-of-the-moon 2025-09-19 --frame=celestial_up      # Celestial north up (default without lat/lon)
+npx ascii-side-of-the-moon 2025-09-19 --frame=celestial_down    # Celestial south up (inverted)
+npx ascii-side-of-the-moon 2025-09-19 --frame=observer --lat 40.7 --lon -74  # Observer view (zenith up)
 ```
 
 The CLI will display the ASCII moon art along with information about the moon's phase, illumination percentage, distance, and angular diameter.
 When an observer location is supplied, the renderer also knows the altitude/azimuth
 and can draw the horizon line to show whether the moon is above or below your local horizon.
+
+### Frame Options
+
+- `celestial_up` - Standard geocentric orientation with celestial north up (default when no lat/lon provided)
+- `celestial_down` - Inverted orientation with celestial south up
+- `observer` - Observer-relative orientation with zenith up, uses parallactic angle (default when lat/lon provided)
 
 ## Example
 
@@ -60,8 +71,13 @@ this enables horizon-aware rendering and correct rotation for your sky.
 
 ### `renderMoon(moonState: MoonState, options?: RenderOptions): string`
 Renders the moon as ASCII art. Returns a 29×60 character string.
-`RenderOptions` now includes `showHorizon` (default `true`): set it to `false`
-if you want to suppress the horizon overlay even when altitude data is available.
+
+`RenderOptions` includes:
+- `showHorizon` (default `true` for observer frame): set to `false` to suppress the horizon overlay
+- `frame`: Reference frame for the moon orientation:
+  - `"celestial_up"` - Celestial north up (default when no position data)
+  - `"celestial_down"` - Celestial south up (180° rotation)
+  - `"observer"` - Observer's zenith up, uses parallactic angle (default when position data available)
 
 ### `getMoonPhase(moonState: MoonState): string`
 Returns the English name of the moon phase (e.g., "New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous", "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent").
@@ -88,6 +104,11 @@ pnpm run render:demo 2025-01-01 21:30 --lat 37.7749 --lon -122.4194 --elevation 
 
 # Just observer location (uses current date/time)
 pnpm run render:demo --lat 40.7128 --lon -74.0060
+
+# Choose a reference frame
+pnpm run render:demo 2025-01-01 --frame=celestial_up      # Celestial north up
+pnpm run render:demo 2025-01-01 --frame=celestial_down    # Celestial south up (inverted)
+pnpm run render:demo 2025-01-01 --frame=observer --lat 40.7 --lon -74  # Observer view
 ```
 
 Render an animation:
